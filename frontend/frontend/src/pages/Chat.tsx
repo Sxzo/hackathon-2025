@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { FcCancel } from 'react-icons/fc'
 import { sendMessage } from '../services/chatService'
+import ReactMarkdown from 'react-markdown'
 
 interface Message {
   id: number;
@@ -229,7 +230,7 @@ const Chat = () => {
                 key={message.id} 
                 className="px-4 py-6"
               >
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-[95%] mx-auto">
                   <div className={`flex ${message.isAi ? '' : 'justify-end'}`}>
                     <div 
                       className={`inline-block max-w-[90%] ${
@@ -238,9 +239,17 @@ const Chat = () => {
                           : 'bg-[#004977] text-white'
                       } rounded-2xl px-4 py-3 animate-messageIn`}
                     >
-                      <p className="text-[15px] leading-relaxed">
-                        {message.text}
-                      </p>
+                      {message.isAi ? (
+                        <div className="text-[15px] leading-relaxed prose prose-sm max-w-none">
+                          <ReactMarkdown>
+                            {message.text}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-[15px] leading-relaxed">
+                          {message.text}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -256,42 +265,26 @@ const Chat = () => {
         >
           <div className="max-w-[95%] mx-auto">
             {!hasInteracted && (
-              <>
-                <h1 
-                  className="text-2xl font-semibold text-gray-800 text-center mb-2 select-none"
-                >
-                  {displayText}
-                  <span className="inline-block w-0.5 h-5 bg-gray-800 ml-0.5 animate-blink"></span>
-                </h1>
-                
-                {/* Prompt Suggestions */}
-                <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {promptSuggestions.map((prompt, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handlePromptClick(prompt)}
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm px-3 py-1.5 rounded-full transition-colors duration-200"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
-              </>
+              <h1 
+                className="text-2xl font-semibold text-gray-800 text-center mb-2 select-none"
+              >
+                {displayText}
+                <span className="inline-block w-0.5 h-5 bg-gray-800 ml-0.5 animate-blink"></span>
+              </h1>
             )}
-            <div className="relative flex items-center animate-fadeIn animation-delay-300">
+            <div className={`relative flex items-center animate-fadeIn animation-delay-300 ${hasInteracted ? '' : 'mt-8 mb-6'}`}>
               <input
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask anything..."
-                className="w-full rounded-lg pr-10 pl-2 py-2 bg-white text-gray-900 text-base focus:outline-none shadow-md focus:shadow-md transition-shadow duration-200"
+                placeholder="Ask Finn anything about your finances..."
+                className="w-full rounded-lg pr-10 pl-2 py-2 bg-white text-gray-900 text-base border border-gray-300 focus:outline-none shadow-md"
               />
               {isOnCooldown && aiThinkingTimeout ? (
                 <button 
                   type="button"
                   onClick={handleCancel}
-                  className="absolute right-2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                  className="absolute right-2 p-1.5 text-gray-400 hover:text-gray-600 flex items-center justify-center"
                   aria-label="Cancel response"
                 >
                   <svg 
@@ -306,7 +299,11 @@ const Chat = () => {
               ) : (
                 <button 
                   type="submit"
-                  className="absolute right-2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                  className={`absolute right-2 p-1.5 flex items-center justify-center ${
+                    inputValue.trim() 
+                      ? 'text-red-600 hover:text-red-700' 
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
                   aria-label="Send message"
                 >
                   <svg 
@@ -320,13 +317,16 @@ const Chat = () => {
                 </button>
               )}
             </div>            
-            {!hasInteracted && (
-              <div className="mt-4 space-y-2 animate-fadeIn animation-delay-500">
+            
+            {/* Prompt Suggestions (centered and in line) */}
+            {messages.length === 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mt-3">
                 {promptSuggestions.map((prompt, index) => (
-                  <button 
+                  <button
                     key={index}
-                    onClick={() => setInputValue(prompt)}
-                    className="w-full text-left px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm text-gray-700 transition-colors duration-200"
+                    type="button"
+                    onClick={() => handlePromptClick(prompt)}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm px-3 py-1.5 rounded-full transition-colors duration-200 whitespace-nowrap"
                   >
                     {prompt}
                   </button>

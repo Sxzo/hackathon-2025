@@ -57,6 +57,13 @@ default_settings = {
     'financial_weekly_summary_time': '15:00'
 }
 
+default_budgets = {
+    'shopping': 300,
+    'food': 500,
+    'entertainment': 200,
+    'target_balance': 5000
+}
+
 def generate_jwt_token(phone_number):
     """Generate JWT tokens for authentication."""
     # Create access token with phone number as identity
@@ -236,7 +243,8 @@ def verify_code():
                     'status': 'verified',
                     'created_at': datetime.now(timezone.utc),
                     'plaid_connected': False, #Remove?
-                    'settings': user_settings
+                    'settings': user_settings,
+                    'budgets': default_budgets
                 }
                 
                 try:
