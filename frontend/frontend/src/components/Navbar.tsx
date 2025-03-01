@@ -28,12 +28,20 @@ const Navbar = () => {
               </button>
             </>
           ) : (
-            <Link 
-              to="/login" 
-              className="text-white hover:text-[#d03027] transition-colors flex items-center"
-            >
-              <FiLogIn className="mr-1" /> Login
-            </Link>
+            <>
+              <Link 
+                to="/signup" 
+                className="text-white hover:text-[#d03027] transition-colors flex items-center"
+              >
+                Sign Up
+              </Link>
+              <Link 
+                to="/login" 
+                className="text-white hover:text-[#d03027] transition-colors flex items-center"
+              >
+                <FiLogIn className="mr-1" /> Login
+              </Link>
+            </>
           )}
         </div>
       </div>
