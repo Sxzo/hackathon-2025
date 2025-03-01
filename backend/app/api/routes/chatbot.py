@@ -81,6 +81,19 @@ def chat():
             for tx in formatted_transactions
         ])
         
+        # Get user's budget data
+        budget_data = user.get("budgets", {})
+        
+        # Format budget data for the prompt
+        budget_info = "Budget Information:\n"
+        if budget_data:
+            budget_info += f"Shopping Budget: ${budget_data.get('shopping', 0):.2f}/month\n"
+            budget_info += f"Food Budget: ${budget_data.get('food', 0):.2f}/month\n"
+            budget_info += f"Entertainment Budget: ${budget_data.get('entertainment', 0):.2f}/month\n"
+            budget_info += f"Target Account Balance: ${budget_data.get('target_balance', 0):.2f}\n"
+        else:
+            budget_info += "No budget information available.\n"
+        
         # Get chat history from the database or initialize if not exists
         chat_history = user.get("chat_history", [])
         
@@ -89,10 +102,12 @@ def chat():
             {
                 "role": "system", 
                 "content": f"""You are a helpful financial assistant that helps users understand their transaction history and finances.
-You have access to the user's transaction history from their bank account.
+You have access to the user's transaction history from their bank account and their budget settings.
 Use this information to provide personalized financial advice and answer questions.
 Be concise, helpful, and accurate. If you don't know something, say so.
 Do not make up information that is not in the transaction history.
+
+{budget_info}
 
 Transaction history:
 {transaction_history}"""
