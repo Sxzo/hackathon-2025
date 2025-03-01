@@ -176,8 +176,8 @@ const Chat = () => {
   }
 
   return (
-    <div className="bg-white min-h-screen flex items-end justify-center pb-0">
-      <div className={`w-full max-w-4xl mx-auto transition-all duration-700 ease-in-out rounded-lg overflow-hidden relative ${hasInteracted ? 'h-[calc(100vh-40px)] mt-[20px]' : 'h-[700px] mt-[40vh] mb-auto'}`}>
+    <div className="bg-white min-h-screen flex items-center justify-center">
+      <div className={`w-full max-w-4xl mx-auto transition-all duration-700 ease-in-out rounded-lg overflow-hidden relative ${hasInteracted ? 'h-[calc(100vh-40px)] mt-[20px]' : 'h-[700px]  mt-64'}`}>
         <div className={`flex-1 w-full overflow-y-auto no-scrollbar transition-all duration-700 flex flex-col ${hasInteracted ? 'opacity-100 h-[calc(100vh-180px)]' : 'opacity-0 h-0'}`}>
           {/* Chat Messages */}
           <div className="w-full flex-1 flex flex-col-reverse">
@@ -215,7 +215,7 @@ const Chat = () => {
           <div className="max-w-[95%] mx-auto">
             {!hasInteracted && (
               <h1 
-                className="text-2xl font-semibold text-gray-800 text-center mb-2 select-none"
+                className="text-2xl font-semibold text-gray-800 text-center mb-6 select-none"
               >
                 {displayText}
                 <span className="inline-block w-0.5 h-5 bg-gray-800 ml-0.5 animate-blink"></span>
@@ -251,7 +251,9 @@ const Chat = () => {
                   className={`absolute right-2 p-1.5 transition-colors duration-200 ${
                     isOnCooldown 
                       ? 'text-gray-300 cursor-not-allowed' 
-                      : 'text-gray-400 hover:text-gray-600'
+                      : inputValue.trim() 
+                        ? 'text-red-500 hover:text-red-600' 
+                        : 'text-gray-400 hover:text-gray-600'
                   }`}
                   disabled={isOnCooldown}
                   aria-label="Send message"
@@ -284,7 +286,7 @@ const Chat = () => {
           </div>
           <div className="max-w-[95%] mx-auto mt-1">
             {hasInteracted && (
-              <p className="text-xs text-center text-gray-400 animate-fadeIn animation-delay-500">
+              <p className="text-xs text-center text-gray-400 animate-fadeIn animation-delay-500 mt-3">
                 Finn is not flawless. Check important information.
               </p>
             )}
