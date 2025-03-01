@@ -50,13 +50,11 @@ twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_
 
 default_settings = {
     'timezone': 'America/New_York',  # This will be overridden by user input
-    'notification_time': '09:00',
-    'model': 'gpt-4',
+    'notification_time': '15:00',
+    'model': 'gpt4',
     'temperature': 0.7,
     'financial_weekly_summary': True,
-    'financial_weekly_summary_time': '09:00',
-    'stock_weekly_summary': True,
-    'stock_weekly_summary_time': '09:00',
+    'financial_weekly_summary_time': '15:00'
 }
 
 def generate_jwt_token(phone_number):

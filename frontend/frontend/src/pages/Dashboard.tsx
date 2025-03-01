@@ -1,16 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BsCreditCard2Front } from 'react-icons/bs';
-import { FiChevronDown, FiCheck, FiEdit2 } from 'react-icons/fi';
+import { FiChevronDown, FiCheck, FiEdit2, FiRefreshCw, FiLock } from 'react-icons/fi';
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import TransactionsList from '../components/TransactionsList';
+import AccountsList from '../components/AccountsList';
+import { useAuth } from '../context/AuthContext';
+
+// Define transaction interface
+interface Transaction {
+  transaction_id?: string;
+  id?: string;
+  date: string;
+  name: string;
+  amount: number;
+  category: string[];
+}
+
+interface Account {
+  account_id: string;
+  name: string;
+  mask: string;
+  type: string;
+  subtype: string;
+  balances: {
+    available: number;
+    current: number;
+    limit?: number;
+    iso_currency_code: string;
+  };
+}
 
 const Dashboard = () => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedCard, setSelectedCard] = useState({
-    id: 'venture',
-    name: 'Capital One Venture',
-    icon: <BsCreditCard2Front className="text-[#004977]" />
-  });
+  const [selectedChart, setSelectedChart] = useState<'bank' | 'portfolio'>('bank');
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [expensesData, setExpensesData] = useState<Array<{name: string, value: number, color: string}>>([]);
+  const [bankData, setBankData] = useState<Array<{date: string, fullDate?: string, value: number}>>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const { token } = useAuth();
   
+  const BASE_URL = 'http://localhost:5001';
+
   const cards = [
     {
       id: 'venture',
@@ -24,220 +55,353 @@ const Dashboard = () => {
     }
   ];
 
-  // Dummy data for the portfolio performance chart
-  const portfolioData = [
-    { date: '2024-01', value: 50000 },
-    { date: '2024-02', value: 52000 },
-    { date: '2024-03', value: 51500 },
-    { date: '2024-04', value: 53500 },
-    { date: '2024-05', value: 54800 },
-    { date: '2024-06', value: 54200 },
-    { date: '2024-07', value: 56000 },
-  ];
+  // Colors for expense categories
+  const categoryColors: Record<string, string> = {
+    'Food and Drink': '#d03027',
+    'General Merchandise': '#004977',
+    'Travel': '#2ecc71',
+    'Recreation': '#f1c40f',
+    'Transportation': '#9b59b6',
+    'Payment': '#3498db',
+    'Rent and Utilities': '#e67e22',
+    'Healthcare': '#e74c3c',
+    'Other': '#34495e'
+  };
 
-  // Dummy data for the expenses pie chart
-  const expensesData = [
-    { name: 'Housing', value: 1800, color: '#004977' },
-    { name: 'Food', value: 600, color: '#d03027' },
-    { name: 'Transport', value: 400, color: '#2ecc71' },
-    { name: 'Entertainment', value: 300, color: '#f1c40f' },
-    { name: 'Shopping', value: 500, color: '#9b59b6' },
-    { name: 'Others', value: 400, color: '#34495e' },
-  ];
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  // New bank account performance data
-  const bankData = [
-    { date: '2024-01', value: 4500 },
-    { date: '2024-02', value: 5200 },
-    { date: '2024-03', value: 4800 },
-    { date: '2024-04', value: 5500 },
-    { date: '2024-05', value: 6100 },
-    { date: '2024-06', value: 5800 },
-    { date: '2024-07', value: 6500 },
-  ];
+  const fetchData = async () => {
+    await Promise.all([
+      fetchTransactions(),
+      fetchAccounts()
+    ]);
+  };
 
-  const [selectedChart, setSelectedChart] = useState('portfolio');
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
-  const [monthlyBudget, setMonthlyBudget] = useState(4000);
-  const [currentSpending, setCurrentSpending] = useState(2850);
-  const [entertainmentBudget, setEntertainmentBudget] = useState(500);
-  const [entertainmentSpending, setEntertainmentSpending] = useState(280);
-  const [foodBudget, setFoodBudget] = useState(800);
-  const [foodSpending, setFoodSpending] = useState(600);
-  const [shoppingBudget, setShoppingBudget] = useState(600);
-  const [shoppingSpending, setShoppingSpending] = useState(450);
+  const fetchAccounts = async () => {
+    if (!token) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${BASE_URL}/api/plaid/accounts`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.accounts && data.accounts.length > 0) {
+        setAccounts(data.accounts);
+      }
+    } catch (err: any) {
+      console.error('Error fetching accounts:', err);
+    }
+  };
 
-  const handleCardSelect = (card: typeof cards[0]) => {
-    setSelectedCard(card);
-    setIsDropdownOpen(false);
+  const fetchTransactions = async () => {
+    if (!token) {
+      setError('Authentication required');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${BASE_URL}/api/plaid/transactions?days=30`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.transactions && data.transactions.length > 0) {
+        // Format transactions from Plaid API
+        const formattedTransactions = data.transactions.map((tx: any) => ({
+          id: tx.transaction_id || tx.id,
+          date: tx.date,
+          name: tx.name,
+          amount: tx.amount,
+          category: tx.category || []
+        }));
+        
+        setTransactions(formattedTransactions);
+        
+        // Process transactions for expense chart
+        processTransactionsForExpenseChart(formattedTransactions);
+        
+        // Generate bank account chart data
+        generateBankAccountChartData(formattedTransactions, data.accounts);
+      }
+    } catch (err: any) {
+      console.error('Error fetching transactions:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load transactions');
+      
+      // Set default expense data if there's an error
+      setExpensesData([
+        { name: 'Housing', value: 1800, color: '#004977' },
+        { name: 'Food', value: 600, color: '#d03027' },
+        { name: 'Transport', value: 400, color: '#2ecc71' },
+        { name: 'Entertainment', value: 300, color: '#f1c40f' },
+        { name: 'Shopping', value: 500, color: '#9b59b6' },
+        { name: 'Others', value: 400, color: '#34495e' },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const generateBankAccountChartData = (transactions: Transaction[], accounts: Account[]) => {
+    if (!transactions.length || !accounts.length) return;
+    
+    // Get current balance from accounts
+    const totalCurrentBalance = accounts.reduce((sum, account) => 
+      sum + (account.balances?.current || 0), 0);
+    
+    // Get today's date and date from 30 days ago
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    // Filter transactions to only include those from the past 30 days
+    const recentTransactions = transactions.filter(tx => {
+      const txDate = new Date(tx.date);
+      return txDate >= thirtyDaysAgo && txDate <= today;
+    });
+    
+    // Sort transactions by date (oldest first)
+    const sortedTransactions = [...recentTransactions].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    // Create a map of daily balances
+    const dailyBalances: Record<string, number> = {};
+    
+    // Start with current balance
+    let runningBalance = totalCurrentBalance;
+    
+    // Work backwards from current balance using transaction amounts
+    // In Plaid, positive amounts are debits (money leaving account)
+    // and negative amounts are credits (money coming into account)
+    for (let i = sortedTransactions.length - 1; i >= 0; i--) {
+      const tx = sortedTransactions[i];
+      runningBalance += tx.amount; // Add because we're working backwards
+      
+      // Format date to YYYY-MM-DD
+      const dateObj = new Date(tx.date);
+      const formattedDate = dateObj.toISOString().split('T')[0];
+      
+      dailyBalances[formattedDate] = runningBalance;
+    }
+    
+    // Fill in missing days within the 30-day period
+    const chartData = [];
+    for (let d = new Date(thirtyDaysAgo); d <= today; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      
+      // Find the most recent balance for this date or earlier
+      let balance = null;
+      let checkDate = new Date(d);
+      
+      while (balance === null && checkDate >= thirtyDaysAgo) {
+        const checkDateStr = checkDate.toISOString().split('T')[0];
+        if (dailyBalances[checkDateStr] !== undefined) {
+          balance = dailyBalances[checkDateStr];
+          break;
+        }
+        checkDate.setDate(checkDate.getDate() - 1);
+      }
+      
+      // If no earlier balance found, use the earliest available balance
+      if (balance === null) {
+        const earliestDate = Object.keys(dailyBalances).sort()[0];
+        balance = earliestDate ? dailyBalances[earliestDate] : totalCurrentBalance;
+      }
+      
+      // Format date for display (MM/DD)
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const displayDate = `${month}/${day}`;
+      
+      chartData.push({
+        date: displayDate,
+        fullDate: dateStr, // Keep full date for sorting
+        value: parseFloat(balance.toFixed(2))
+      });
+    }
+    
+    // Add current balance as the most recent point ONLY if not already included
+    const todayStr = today.toISOString().split('T')[0];
+    if (!dailyBalances[todayStr] && !chartData.some(item => item.fullDate === todayStr)) {
+      const month = today.getMonth() + 1;
+      const day = today.getDate();
+      const displayDate = `${month}/${day}`;
+      
+      chartData.push({
+        date: displayDate,
+        fullDate: todayStr,
+        value: parseFloat(totalCurrentBalance.toFixed(2))
+      });
+    }
+    
+    // Sort by date
+    chartData.sort((a, b) => a.fullDate!.localeCompare(b.fullDate!));
+    
+    // Remove duplicate dates (keep the latest entry for each date)
+    const uniqueDates = new Map();
+    for (const item of chartData) {
+      uniqueDates.set(item.date, item);
+    }
+    
+    // Only keep every 3rd point if we have more than 10 points (to avoid overcrowding)
+    let finalChartData = Array.from(uniqueDates.values());
+    if (finalChartData.length > 10) {
+      const reducedData = [finalChartData[0]]; // Always include first point
+      
+      for (let i = 1; i < finalChartData.length - 1; i++) {
+        if (i % 3 === 0) {
+          reducedData.push(finalChartData[i]);
+        }
+      }
+      
+      reducedData.push(finalChartData[finalChartData.length - 1]); // Always include last point
+      finalChartData = reducedData;
+    }
+    
+    setBankData(finalChartData);
+  };
+
+  const processTransactionsForExpenseChart = (transactions: Transaction[]) => {
+    // Only include expenses (positive amounts in Plaid are debits)
+    const expenses = transactions.filter(tx => tx.amount > 0);
+    
+    // Group by primary category
+    const categoryTotals: Record<string, number> = {};
+    
+    expenses.forEach(tx => {
+      const primaryCategory = tx.category && tx.category.length > 0 
+        ? tx.category[0] 
+        : 'Other';
+      
+      if (!categoryTotals[primaryCategory]) {
+        categoryTotals[primaryCategory] = 0;
+      }
+      
+      categoryTotals[primaryCategory] += tx.amount;
+    });
+    
+    // Convert to chart data format
+    const chartData = Object.entries(categoryTotals).map(([category, total]) => ({
+      name: category,
+      value: parseFloat(total.toFixed(2)),
+      color: categoryColors[category] || '#34495e' // Default to dark gray if no color defined
+    }));
+    
+    // Sort by value (highest first)
+    chartData.sort((a, b) => b.value - a.value);
+    
+    // Limit to top 6 categories, combine the rest into "Other"
+    if (chartData.length > 6) {
+      const topCategories = chartData.slice(0, 5);
+      const otherCategories = chartData.slice(5);
+      
+      const otherTotal = otherCategories.reduce((sum, item) => sum + item.value, 0);
+      
+      if (otherTotal > 0) {
+        topCategories.push({
+          name: 'Other',
+          value: parseFloat(otherTotal.toFixed(2)),
+          color: '#34495e'
+        });
+      }
+      
+      setExpensesData(topCategories);
+    } else {
+      setExpensesData(chartData);
+    }
   };
 
   // Modified Portfolio/Bank Account Chart Component
   const renderPerformanceChart = () => (
     <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-16 h-1 bg-[#d03027]"></div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-[#004977]">
-          {selectedChart === 'portfolio' ? 'Portfolio Performance' : 'Bank Account Performance'}
+          {selectedChart === 'portfolio' ? 'Portfolio Performance' : 'Monthly Bank Account Balance'}
         </h2>
         <div className="flex gap-2">
           <button
-            onClick={() => setSelectedChart('portfolio')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              selectedChart === 'portfolio'
-                ? 'bg-[#004977] text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            disabled={true}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 bg-gray-100 text-gray-400 cursor-not-allowed"
+            title="Coming soon"
           >
-            Portfolio
+            <FiLock size={12} /> Portfolio
           </button>
           <button
             onClick={() => setSelectedChart('bank')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              selectedChart === 'bank'
-                ? 'bg-[#004977] text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors bg-[#004977] text-white"
           >
             Bank Account
           </button>
         </div>
       </div>
       <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={selectedChart === 'portfolio' ? portfolioData : bankData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="date" 
-              stroke="#718096"
-              tick={{ fill: '#718096', fontSize: 12 }}
-            />
-            <YAxis 
-              stroke="#718096"
-              tick={{ fill: '#718096', fontSize: 12 }}
-              tickFormatter={(value) => `$${value.toLocaleString()}`}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'white',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-              }}
-              formatter={(value) => [`$${value.toLocaleString()}`, 'Value']}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              stroke="#004977" 
-              strokeWidth={2}
-              dot={{ fill: '#004977', strokeWidth: 2 }}
-              activeDot={{ r: 8 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004977]"></div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={bankData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="date" 
+                stroke="#718096"
+                tick={{ fill: '#718096', fontSize: 12 }}
+              />
+              <YAxis 
+                stroke="#718096"
+                tick={{ fill: '#718096', fontSize: 12 }}
+                tickFormatter={(value) => `$${value.toLocaleString()}`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                }}
+                formatter={(value) => [`$${value.toLocaleString()}`, 'Value']}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#004977" 
+                strokeWidth={2}
+                dot={{ fill: '#004977', strokeWidth: 2 }}
+                activeDot={{ r: 8 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
-  );
-
-  // New Budget Meter Component
-  const renderBudgetMeters = () => {
-    const meters = [
-      {
-        title: 'Total Monthly Budget',
-        current: currentSpending,
-        budget: monthlyBudget,
-        onClick: () => setShowBudgetModal(true)
-      },
-      {
-        title: 'Entertainment Budget',
-        current: entertainmentSpending,
-        budget: entertainmentBudget,
-        onClick: () => setShowBudgetModal(true)
-      },
-      {
-        title: 'Food Budget',
-        current: foodSpending,
-        budget: foodBudget,
-        onClick: () => setShowBudgetModal(true)
-      },
-      {
-        title: 'Shopping Budget',
-        current: shoppingSpending,
-        budget: shoppingBudget,
-        onClick: () => setShowBudgetModal(true)
-      }
-    ];
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {meters.map((meter, index) => {
-          const progress = (meter.current / meter.budget) * 100;
-          const progressColor = progress > 90 ? '#d03027' : progress > 75 ? '#f1c40f' : '#2ecc71';
-          
-          return (
-            <div key={index} className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-16 h-1 bg-[#d03027]"></div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-[#004977]">{meter.title}</h2>
-                <button
-                  onClick={meter.onClick}
-                  className="text-gray-500 hover:text-[#004977] transition-colors"
-                >
-                  <FiEdit2 className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full transition-all duration-500 rounded-full"
-                    style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: progressColor }}
-                  />
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    Spent: <span className="font-medium text-[#004977]">${meter.current.toLocaleString()}</span>
-                  </span>
-                  <span className="text-gray-600">
-                    Budget: <span className="font-medium text-[#004977]">${meter.budget.toLocaleString()}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Budget Edit Modal
-  const renderBudgetModal = () => (
-    showBudgetModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
-          <h3 className="text-xl font-semibold mb-4 text-[#004977]">Edit Monthly Budget</h3>
-          <input
-            type="number"
-            value={monthlyBudget}
-            onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-            className="w-full p-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-[#004977]"
-          />
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setShowBudgetModal(false)}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => setShowBudgetModal(false)}
-              className="px-4 py-2 bg-[#004977] text-white rounded-lg hover:bg-[#003d66] transition-colors"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    )
   );
 
   // Modify the expenses pie chart section to include the total in the center
@@ -246,48 +410,68 @@ const Dashboard = () => {
     
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-16 h-1 bg-[#d03027]"></div>
-        <div className="flex flex-col">
-          <h2 className="text-xl font-semibold text-[#004977]">Monthly Expenses</h2>
-          <div className="text-2xl font-bold text-[#004977] mt-2 mb-4">
-            ${totalExpenses.toLocaleString()}
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-[#004977]">Monthly Expenses</h2>
+            <div className="text-2xl font-bold text-[#004977] mt-2">
+              ${totalExpenses.toLocaleString()}
+            </div>
           </div>
+          <button 
+            onClick={fetchTransactions}
+            disabled={isLoading}
+            className="text-gray-500 hover:text-[#004977] p-2 rounded-full"
+            title="Refresh expenses"
+          >
+            <FiRefreshCw className={isLoading ? 'animate-spin' : ''} size={18} />
+          </button>
         </div>
-        <div className="h-[300px] flex items-center">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={expensesData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {expensesData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                }}
-                formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="space-y-2">
-            {expensesData.map((entry, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                <span className="text-sm text-gray-600">{entry.name}</span>
-              </div>
-            ))}
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[300px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#004977]"></div>
           </div>
-        </div>
+        ) : error ? (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4">
+            {error}
+          </div>
+        ) : (
+          <div className="h-[300px] flex items-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={expensesData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {expensesData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                  }}
+                  formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-2">
+              {expensesData.map((entry, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                  <span className="text-sm text-gray-600">{entry.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -305,164 +489,12 @@ const Dashboard = () => {
           {renderExpensesChart()}
         </div>
 
-        <div className="mt-6">
-          {renderBudgetMeters()}
-        </div>
+        <AccountsList />
 
-        {/* Connected Accounts Section */}
-        <div className="mt-6">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-16 h-1 bg-[#d03027]"></div>
-            <h2 className="text-xl font-semibold mb-4 text-[#004977]">Connected Accounts</h2>
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg border-gray-100 hover:border-[#004977] transition-colors">
-                <div className="flex justify-between">
-                  <span className="font-medium">Checking Account</span>
-                  <span>$4,285.75</span>
-                </div>
-                <div className="text-sm text-gray-500">Capital One</div>
-              </div>
-              <div className="p-4 border rounded-lg border-gray-100 hover:border-[#004977] transition-colors">
-                <div className="flex justify-between">
-                  <span className="font-medium">Credit Card</span>
-                  <span className="text-[#d03027]">-$1,249.50</span>
-                </div>
-                <div className="text-sm text-gray-500">Capital One Venture</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* New Transactions Section */}
-        <div className="mt-6">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-16 h-1 bg-[#d03027]"></div>
-            
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#004977]">Recent Transactions</h2>
-              
-              <div className="relative">
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center justify-between w-64 p-2.5 bg-white border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-[#004977] transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    {selectedCard.icon}
-                    <span className="text-gray-700">{selectedCard.name}</span>
-                  </div>
-                  <FiChevronDown
-                    className={`text-gray-500 transition-transform duration-200 ${
-                      isDropdownOpen ? 'transform rotate-180' : ''
-                    }`}
-                  />
-                </button>
-
-                {isDropdownOpen && (
-                  <div className="absolute z-10 w-64 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                    {cards.map((card) => (
-                      <button
-                        key={card.id}
-                        onClick={() => handleCardSelect(card)}
-                        className={`flex items-center gap-2 w-full p-2.5 text-left hover:bg-gray-50 transition-colors ${
-                          selectedCard.id === card.id ? 'bg-gray-50' : ''
-                        }`}
-                      >
-                        {card.icon}
-                        <span className="text-gray-700">{card.name}</span>
-                        {selectedCard.id === card.id && (
-                          <FiCheck className="ml-auto text-[#004977]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-gray-600 font-medium">Date</th>
-                    <th className="text-left py-3 px-4 text-gray-600 font-medium">Merchant</th>
-                    <th className="text-left py-3 px-4 text-gray-600 font-medium">Category</th>
-                    <th className="text-right py-3 px-4 text-gray-600 font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Sample transactions - In a real app, this would come from your API */}
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Mar 15, 2024</div>
-                      <div className="text-xs text-gray-500">8:30 PM</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Whole Foods Market</div>
-                      <div className="text-xs text-gray-500">#TX123456</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Groceries</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#d03027] font-medium">-$156.78</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Mar 14, 2024</div>
-                      <div className="text-xs text-gray-500">2:15 PM</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Amazon.com</div>
-                      <div className="text-xs text-gray-500">#TX123455</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Shopping</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#d03027] font-medium">-$89.99</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Mar 14, 2024</div>
-                      <div className="text-xs text-gray-500">11:45 AM</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Starbucks</div>
-                      <div className="text-xs text-gray-500">#TX123454</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">Dining</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#d03027] font-medium">-$5.65</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Mar 13, 2024</div>
-                      <div className="text-xs text-gray-500">7:20 PM</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Netflix</div>
-                      <div className="text-xs text-gray-500">#TX123453</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">Entertainment</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#d03027] font-medium">-$15.99</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-4 text-right">
-              <button className="text-[#004977] hover:text-[#003d66] text-sm font-medium">
-                View All Transactions →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {renderBudgetModal()}
+        <TransactionsList />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard 
+export default Dashboard; 
