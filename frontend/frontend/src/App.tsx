@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Chat from './pages/Chat'
 import Settings from './pages/Settings'
 import Login from './pages/Login'
+import SignUp from './pages/SignUp'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import './App.css'
 
@@ -28,6 +29,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />

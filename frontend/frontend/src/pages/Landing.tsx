@@ -2,6 +2,7 @@ import { FiArrowRight, FiBarChart2, FiDollarSign, FiCalendar, FiMessageCircle, F
 import { BsGraphUp, BsShieldCheck, BsCreditCard2Front } from 'react-icons/bs';
 import { TypeAnimation } from 'react-type-animation';
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const Landing = () => {
   const [isVisible, setIsVisible] = useState({
@@ -85,9 +86,12 @@ const Landing = () => {
               Let Finn help you manage your investments, track spending, and make smarter financial decisions with personalized AI-powered insights.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 animate-fadeIn animation-delay-500">
-              <button className="bg-[#d03027] hover:bg-[#b02a23] text-white px-8 py-3 rounded-lg text-lg font-medium transition-all duration-300 flex items-center justify-center hover:scale-105">
+              <Link
+                to="/signup"
+                className="inline-flex items-center justify-center px-6 py-3 mt-8 text-lg font-medium text-white bg-[#d03027] rounded-lg hover:bg-[#b02a23] transition-colors"
+              >
                 Get Started <FiArrowRight className="ml-2" />
-              </button>
+              </Link>
             </div>
 
           </div>
