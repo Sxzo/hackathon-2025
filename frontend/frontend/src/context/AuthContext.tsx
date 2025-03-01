@@ -22,43 +22,30 @@ interface AuthState {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [auth, setAuth] = useState<AuthState>({
-    token: localStorage.getItem('token'),
-    phoneNumber: localStorage.getItem('phoneNumber'),
-    firstName: localStorage.getItem('firstName'),
-    lastName: localStorage.getItem('lastName')
+    token: localStorage.getItem('finn_auth_token'),
+    phoneNumber: localStorage.getItem('finn_phone_number'),
+    firstName: localStorage.getItem('finn_first_name'),
+    lastName: localStorage.getItem('finn_last_name')
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check if token exists in localStorage on initial load
-    const storedToken = localStorage.getItem('finn_auth_token');
-    const storedPhone = localStorage.getItem('finn_phone_number');
-    
-    if (storedToken) {
-      setAuth({
-        token: storedToken,
-        phoneNumber: storedPhone,
-        firstName: localStorage.getItem('firstName'),
-        lastName: localStorage.getItem('lastName')
-      });
-    }
-    
     setIsLoading(false);
   }, []);
 
   const login = (token: string, phoneNumber: string, firstName: string, lastName: string) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('phoneNumber', phoneNumber);
-    localStorage.setItem('firstName', firstName);
-    localStorage.setItem('lastName', lastName);
+    localStorage.setItem('finn_auth_token', token);
+    localStorage.setItem('finn_phone_number', phoneNumber);
+    localStorage.setItem('finn_first_name', firstName);
+    localStorage.setItem('finn_last_name', lastName);
     setAuth({ token, phoneNumber, firstName, lastName });
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('phoneNumber');
-    localStorage.removeItem('firstName');
-    localStorage.removeItem('lastName');
+    localStorage.removeItem('finn_auth_token');
+    localStorage.removeItem('finn_phone_number');
+    localStorage.removeItem('finn_first_name');
+    localStorage.removeItem('finn_last_name');
     setAuth({ token: null, phoneNumber: null, firstName: null, lastName: null });
   };
 

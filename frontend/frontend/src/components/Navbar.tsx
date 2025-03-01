@@ -29,22 +29,22 @@ const Navbar = () => {
   return (
     <nav className="bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center">
-          <div className="w-1/4">
+        <div className="flex h-16 items-center justify-between">
+          <div className="flex-shrink-0">
             <Link to="/" className="text-[#004977] text-xl font-bold">
               Finn AI
             </Link>
           </div>
           
           {isAuthenticated && (
-            <div className="flex-1 hidden md:flex justify-center space-x-2">
+            <div className="flex-1 hidden md:flex justify-center space-x-2 mx-8">
               <NavLink to="/dashboard" icon={FiHome} label="Dashboard" />
               <NavLink to="/chat" icon={FiMessageSquare} label="Chat" />
               <NavLink to="/settings" icon={FiSettings} label="Settings" />
             </div>
           )}
           
-          <div className="w-1/4 flex justify-end">
+          <div className="flex-shrink-0">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
