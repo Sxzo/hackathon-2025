@@ -117,4 +117,30 @@ export const createLinkToken = async (token: string) => {
     console.error('Error creating link token:', error);
     throw error;
   }
+};
+
+/**
+ * Check if the user has a linked bank account
+ * @param token JWT token for authentication
+ * @returns Object with plaid_connected status
+ */
+export const getAccountStatus = async (token: string) => {
+  try {
+    const response = await fetch(`${API_URL}/plaid/account-status`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to get account status');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting account status:', error);
+    throw error;
+  }
 }; 

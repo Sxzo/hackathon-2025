@@ -1,6 +1,8 @@
+import React from 'react';
 import { FiCreditCard, FiBell, FiSliders, FiPlus, FiTrash2, FiClock } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
 import CustomDropdown from '../components/CustomDropdown';
+import BankAccountStatus from '../components/BankAccountStatus';
 
 const Settings = () => {
   const [notificationTime, setNotificationTime] = useState('09:00');
@@ -49,7 +51,10 @@ const Settings = () => {
         <h1 className="text-3xl font-bold mb-8 text-[#004977]">Settings</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Connected Accounts Card */}
+          {/* Bank Account Status Card */}
+          <BankAccountStatus />
+
+          {/* Connected Accounts Card - Only shown if account is connected */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
