@@ -1,0 +1,6 @@
+pymongo==4.10.1
+plaid-python==16.0.0
+requests==2.31.0
+python-dotenv==1.0.0
+schedule==1.2.1
+pytz==2023.3 

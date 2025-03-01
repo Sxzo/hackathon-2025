@@ -1,0 +1,93 @@
+2025-03-01 15:31:31,638 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 15:32:31,658 - notification_scheduler - INFO - Checking for notifications at 21:32 UTC
+2025-03-01 15:33:01,895 - notification_scheduler - ERROR - Error in check_notifications: localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 67c37cb3bf4a9402d7279cbd, topology_type: Unknown, servers: [<ServerDescription ('localhost', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2025-03-01 15:34:01,918 - notification_scheduler - INFO - Checking for notifications at 21:34 UTC
+2025-03-01 15:34:22,058 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 15:34:22,059 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 15:37:48,202 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 15:38:48,223 - notification_scheduler - INFO - Checking for notifications at 21:38 UTC
+2025-03-01 15:39:18,546 - notification_scheduler - ERROR - Error in check_notifications: localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 67c37e2ced281dd8e4c40696, topology_type: Unknown, servers: [<ServerDescription ('localhost', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('localhost:27017: [WinError 10061] No connection could be made because the target machine actively refused it (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+2025-03-01 15:39:53,076 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 15:39:53,076 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 15:59:48,426 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:00:48,446 - notification_scheduler - INFO - Checking for notifications at 22:00 UTC
+2025-03-01 16:00:48,682 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 16:01:48,704 - notification_scheduler - INFO - Checking for notifications at 22:01 UTC
+2025-03-01 16:01:48,727 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 16:01:54,453 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:01:54,475 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:05:31,437 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:06:31,457 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 22:06:31 UTC
+2025-03-01 16:06:31,782 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 16:07:31,802 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 22:07:31 UTC
+2025-03-01 16:07:31,851 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 16:07:36,107 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:07:36,137 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:12:50,995 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:13:51,016 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 22:13:51.016125 UTC
+2025-03-01 16:13:51,016 - notification_scheduler - INFO - Rounded time: 2025-03-01 22:14:00 UTC
+2025-03-01 16:13:51,262 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 16:14:51,283 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 22:14:51.283495 UTC
+2025-03-01 16:14:51,283 - notification_scheduler - INFO - Rounded time: 2025-03-01 22:15:00 UTC
+2025-03-01 16:14:51,309 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 16:15:51,327 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 22:15:51.327344 UTC
+2025-03-01 16:15:51,327 - notification_scheduler - INFO - Rounded time: 2025-03-01 22:16:00 UTC
+2025-03-01 16:15:51,351 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 16:16:11,297 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:16:11,344 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:16:59,815 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:17:59,836 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 22:17:59.836050 UTC
+2025-03-01 16:17:59,836 - notification_scheduler - INFO - Rounded time: 2025-03-01 22:18:00 UTC
+2025-03-01 16:18:00,065 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 16:18:06,060 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:18:06,086 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:18:52,798 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:18:56,012 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:18:56,013 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:20:07,824 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:20:23,400 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:20:23,427 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:20:37,559 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:20:48,874 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:20:48,902 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:21:05,709 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:21:07,643 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:21:07,703 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:29:05,626 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:29:16,438 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:29:16,470 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 16:29:42,904 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 16:30:42,924 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 22:30:42.924666 UTC
+2025-03-01 16:30:42,924 - notification_scheduler - INFO - Rounded time: 2025-03-01 22:31:00 UTC
+2025-03-01 16:30:44,978 - notification_scheduler - INFO - Found 1 users scheduled for notifications
+2025-03-01 16:30:44,979 - notification_scheduler - INFO - Processing notification for user: 67c348a804e365fa3d283b97 in timezone America/Chicago
+2025-03-01 16:30:46,214 - twilio.http_client - INFO - -- BEGIN Twilio API Request --
+2025-03-01 16:30:46,216 - twilio.http_client - INFO - POST Request: https://api.twilio.com/2010-04-01/Accounts/AC4bf8db071cc7414e2fb6bdff4d6e5871/Messages.json
+2025-03-01 16:30:46,216 - twilio.http_client - INFO - Headers:
+2025-03-01 16:30:46,216 - twilio.http_client - INFO - User-Agent : twilio-python/8.12.0 (Windows AMD64) Python/3.12.9
+2025-03-01 16:30:46,216 - twilio.http_client - INFO - X-Twilio-Client : python-8.12.0
+2025-03-01 16:30:46,216 - twilio.http_client - INFO - Accept-Charset : utf-8
+2025-03-01 16:30:46,217 - twilio.http_client - INFO - Content-Type : application/x-www-form-urlencoded
+2025-03-01 16:30:46,217 - twilio.http_client - INFO - Accept : application/json
+2025-03-01 16:30:46,217 - twilio.http_client - INFO - -- END Twilio API Request --
+2025-03-01 16:30:46,714 - twilio.http_client - INFO - Response Status Code: 400
+2025-03-01 16:30:46,715 - twilio.http_client - INFO - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '168', 'Connection': 'keep-alive', 'Date': 'Sat, 01 Mar 2025 22:30:46 GMT', 'X-Powered-By': 'AT-5000', 'X-Twilio-Error-Code': '21603', 'Twilio-Concurrent-Requests': '1', 'Twilio-Request-Id': 'RQ3652b3e38c8b09038fb7e3efeba96e2a', 'Twilio-Request-Duration': '0.069', 'X-Home-Region': 'us1', 'X-Api-Domain': 'api.twilio.com', 'Strict-Transport-Security': 'max-age=31536000', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Accept, Authorization, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, Idempotency-Key, X-Pre-Auth-Context, X-Target-Region', 'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS', 'Access-Control-Expose-Headers': 'ETag, Twilio-Request-Id', 'Access-Control-Allow-Credentials': 'true', 'X-Shenanigans': 'none', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 9b7d7011177b24785643c881028bb8ea.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P4', 'X-Amz-Cf-Id': '9k8bwLl2tcrouaXDe_nSQYkAp7yBefgZWBbwSeHWJHtPj2LGmjrm0w=='}
+2025-03-01 16:30:46,716 - notification_scheduler - ERROR - Failed to send notification to user 67c348a804e365fa3d283b97
+2025-03-01 16:30:51,345 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 16:30:51,372 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 17:00:21,225 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 17:01:21,245 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 23:01:21.245857 UTC
+2025-03-01 17:01:21,245 - notification_scheduler - INFO - Rounded time: 2025-03-01 23:01:00 UTC
+2025-03-01 17:01:21,633 - notification_scheduler - INFO - Found 1 users scheduled for notifications
+2025-03-01 17:01:21,633 - notification_scheduler - INFO - Processing notification for user: 67c348a804e365fa3d283b97 in timezone America/Chicago
+2025-03-01 17:01:21,634 - notification_scheduler - ERROR - User 67c348a804e365fa3d283b97 has no Telegram chat ID
+2025-03-01 17:01:28,201 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 17:01:28,228 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 17:03:18,055 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 17:04:18,074 - notification_scheduler - INFO - Checking for notifications at 2025-03-01 23:04:18.074988 UTC
+2025-03-01 17:04:18,074 - notification_scheduler - INFO - Rounded time: 2025-03-01 23:04:00 UTC
+2025-03-01 17:04:18,458 - notification_scheduler - INFO - Found 1 users scheduled for notifications
+2025-03-01 17:04:18,458 - notification_scheduler - INFO - Processing notification for user: 67c348a804e365fa3d283b97 in timezone America/Chicago
+2025-03-01 17:04:21,372 - notification_scheduler - INFO - Successfully sent Telegram notification to user 67c348a804e365fa3d283b97
+2025-03-01 17:04:59,431 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 17:04:59,456 - notification_scheduler - INFO - Notification scheduler stopped

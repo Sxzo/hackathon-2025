@@ -448,8 +448,10 @@ const Settings = () => {
                 <CustomDropdown
                   label="AI Model"
                   options={[
-                    { value: 'gpt4', label: 'GPT-4' },
-                    { value: 'gpt3.5', label: 'GPT-3.5' }
+                    { value: 'gpt-4', label: 'GPT 4' },
+                    { value: 'gpt-4o-mini', label: 'GPT 4o mini' },
+                    { value: 'gpt-4o', label: 'GPT 4o' },
+                    { value: 'gpt-3.5-turbo', label: 'GPT 3.5 turbo' }
                   ]}
                   value={selectedModel}
                   onChange={setSelectedModel}
@@ -486,7 +488,6 @@ const Settings = () => {
             <div className="lg:col-span-3">
               <BankAccountStatus />
             </div>
-
             {/* Budget Settings Card */}
             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center space-x-3 mb-6">
