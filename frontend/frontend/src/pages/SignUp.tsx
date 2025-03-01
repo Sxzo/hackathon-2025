@@ -3,17 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiArrowRight, FiPhone, FiLock, FiUser } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
+import PlaidLinkModal from '../components/PlaidLinkModal';
+import { exchangePublicTokenSignup } from '../services/plaidService';
 
 const API_URL = 'http://localhost:5001/api';
 
 const SignUp = () => {
-  const [step, setStep] = useState<'details' | 'verification'>('details');
+  const [step, setStep] = useState<'details' | 'verification' | 'plaid'>('details');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPlaidModal, setShowPlaidModal] = useState(false);
   
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -99,14 +102,50 @@ const SignUp = () => {
           data.first_name,
           data.last_name
         );
-        navigate('/dashboard');
+        setIsLoading(false);
+        
+        // Show Plaid modal immediately after successful verification
+        setShowPlaidModal(true);
+        // Set step to 'plaid' to indicate we're in the Plaid linking step
+        setStep('plaid');
       } else {
         throw new Error('Invalid verification code');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid verification code');
-    } finally {
+    }
+  };
+
+  const handlePlaidSuccess = async (publicToken: string, metadata: any) => {
+    try {
+      console.log('SignUp: Plaid success callback received', publicToken, metadata);
+      setIsLoading(true);
+      
+      // Exchange the public token for an access token
+      const response = await exchangePublicTokenSignup(publicToken, phoneNumber);
+      console.log('SignUp: Exchange public token response', response);
+      
+      // Close the modal and navigate to dashboard
+      setShowPlaidModal(false);
       setIsLoading(false);
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('SignUp: Error exchanging public token', err);
+      setError('Failed to link your bank account. You can try again later from your dashboard.');
+      setIsLoading(false);
+      setTimeout(() => {
+        setShowPlaidModal(false);
+        navigate('/dashboard');
+      }, 3000);
+    }
+  };
+
+  const handleSkipPlaid = () => {
+    // Show a confirmation dialog before skipping
+    if (window.confirm('Are you sure you want to skip linking your bank account? You can do this later from your dashboard.')) {
+      console.log('SignUp: User chose to skip Plaid');
+      setShowPlaidModal(false);
+      navigate('/dashboard');
     }
   };
 
@@ -187,11 +226,11 @@ const SignUp = () => {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Creating Account...
+            Verifying...
           </span>
         ) : (
           <span className="flex items-center">
-            Create Account <FiArrowRight className="ml-2" />
+            Verify & Continue <FiArrowRight className="ml-2" />
           </span>
         )}
       </button>
@@ -199,7 +238,7 @@ const SignUp = () => {
   );
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-4">
+    <div className="bg-gray-50 min-h-screen pt-20">
       <div className="container mx-auto p-4 flex justify-center">
         <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-100 w-full max-w-md relative overflow-hidden">
           <h1 className="text-2xl font-bold mb-6 text-[#004977]">
@@ -290,7 +329,7 @@ const SignUp = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Creating Account...
+                    Sending Code...
                   </span>
                 ) : (
                   <span className="flex items-center">
@@ -323,6 +362,14 @@ const SignUp = () => {
           </div>
         </div>
       </div>
+
+      {/* Plaid Link Modal */}
+      <PlaidLinkModal
+        isOpen={showPlaidModal}
+        onClose={handleSkipPlaid}
+        onSuccess={handlePlaidSuccess}
+        isSignup={true}
+      />
     </div>
   );
 };

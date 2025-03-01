@@ -18,6 +18,9 @@ class Config:
     JWT_HEADER_NAME = 'Authorization'
     JWT_HEADER_TYPE = 'Bearer'
     
+    # MongoDB configuration
+    MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/finn_ai')
+    
     # Twilio configuration
     TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')

@@ -11,6 +11,7 @@ from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
 from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.database import get_users_collection
 
 plaid_bp = Blueprint('plaid', __name__)
 
@@ -88,6 +89,28 @@ def exchange_public_token():
         access_token = exchange_response['access_token']
         item_id = exchange_response['item_id']
         
+        # Update user record to mark Plaid as connected
+        try:
+            users_collection = get_users_collection()
+            
+            current_app.logger.info(f"Updating Plaid connection for user {phone_number}")
+            # Update the user record
+            result = users_collection.update_one(
+                {'phone_number': phone_number},
+                {'$set': {
+                    'plaid_connected': True,
+                    'plaid_item_id': item_id,
+                    'plaid_access_token': access_token,
+                    'plaid_connected_at': datetime.now()
+                }}
+            )
+            
+            if result.modified_count == 0:
+                current_app.logger.warning(f"Failed to update plaid connection status for user {phone_number}")
+        except Exception as db_error:
+            current_app.logger.error(f"Database error updating plaid connection: {str(db_error)}")
+            raise
+        
         # In a production app, you would store these tokens in a database
         # associated with the user's account
         # For this example, we'll just return them
@@ -96,12 +119,14 @@ def exchange_public_token():
         return jsonify({
             'access_token': access_token,
             'item_id': item_id,
-            'message': 'Public token exchanged successfully'
+            'message': 'Public token exchanged successfully',
+            'plaid_connected': True
         })
     
     except plaid.ApiException as e:
         return jsonify({'error': e.body}), 500
     except Exception as e:
+        current_app.logger.error(f"Error in exchange_public_token: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @plaid_bp.route('/transactions', methods=['GET'])
@@ -187,16 +212,37 @@ def signup_transactions():
         transactions = transactions_response['transactions']
         accounts = transactions_response['accounts']
         
-        # In a production app, you would store the access_token, item_id,
-        # and possibly transaction data in your database associated with the user
-        
+        # Update user record to mark Plaid as connected
+        try:
+            users_collection = get_users_collection()
+            
+            current_app.logger.info(f"Updating Plaid connection for user {phone_number} during signup")
+            # Update the user record
+            result = users_collection.update_one(
+                {'phone_number': phone_number},
+                {'$set': {
+                    'plaid_connected': True,
+                    'plaid_item_id': item_id,
+                    'plaid_access_token': access_token,
+                    'plaid_connected_at': datetime.now()
+                }}
+            )
+            
+            if result.modified_count == 0:
+                current_app.logger.warning(f"Failed to update plaid connection status for user {phone_number}")
+        except Exception as db_error:
+            current_app.logger.error(f"Database error updating plaid connection: {str(db_error)}")
+            raise
+                
         return jsonify({
             'message': 'Bank account linked successfully',
             'transactions': [transaction.to_dict() for transaction in transactions],
-            'accounts': [account.to_dict() for account in accounts]
+            'accounts': [account.to_dict() for account in accounts],
+            'plaid_connected': True
         })
     
     except plaid.ApiException as e:
         return jsonify({'error': e.body}), 500
     except Exception as e:
+        current_app.logger.error(f"Error in signup_transactions: {str(e)}")
         return jsonify({'error': str(e)}), 500 

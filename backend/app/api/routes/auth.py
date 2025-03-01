@@ -10,10 +10,12 @@ from flask_jwt_extended import (
 )
 from datetime import datetime, timezone
 from functools import wraps
-from pymongo import MongoClient
+import re
+from app.database import get_users_collection
 
 auth_bp = Blueprint('auth', __name__)
 
+IS_DEVELOPMENT = False
 # In-memory blocklist for revoked tokens
 # In a production environment, this should be stored in Redis or a database
 jwt_blocklist = set()
@@ -25,12 +27,6 @@ TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
 
 # Initialize Twilio client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN else None
-
-# Initialize MongoDB client
-MONGO_URI = os.environ.get('MONGO_URI')
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client.finn_ai
-users_collection = db.users
 
 def generate_jwt_token(phone_number):
     """Generate JWT tokens for authentication."""
@@ -48,24 +44,50 @@ def generate_jwt_token(phone_number):
 
 @auth_bp.route('/send-verification', methods=['POST'])
 def send_verification():
-    """Send a verification code via Twilio Verify."""
+    """Send a verification code to the user's phone number."""
     data = request.get_json()
     
     if not data or 'phone_number' not in data:
         return jsonify({'error': 'Phone number is required'}), 400
     
     phone_number = data['phone_number']
+    print(f"Original phone number: {phone_number}")
     
     # Validate phone number format
     if not phone_number.startswith('+'):
-        phone_number = '+1' + phone_number.replace('/\D/g, ')
+        # Remove all non-digit characters using Python's re module
+        phone_number = '+1' + re.sub(r'\D', '', phone_number)
+    
+    print(f"Formatted phone number: {phone_number}")
     
     try:
         # Check if this is a signup request (has first_name and last_name)
         is_signup = 'first_name' in data and 'last_name' in data
+        print(f"Is signup request: {is_signup}")
         
         # Check if user exists
-        existing_user = users_collection.find_one({'phone_number': phone_number})
+        print("Checking if user exists")
+        
+        # Check if MongoDB is properly configured
+        if not MONGO_URI:
+            print("WARNING: MONGO_URI is not set")
+            return jsonify({'error': 'Database configuration error'}), 500
+            
+        # Check if Twilio is properly configured
+        if not twilio_client and not IS_DEVELOPMENT:
+            print("WARNING: Twilio client is not initialized")
+            return jsonify({'error': 'Twilio configuration error'}), 500
+            
+        if not TWILIO_VERIFY_SERVICE_SID and not IS_DEVELOPMENT:
+            print("WARNING: TWILIO_VERIFY_SERVICE_SID is not set")
+            return jsonify({'error': 'Twilio service SID not configured'}), 500
+        
+        try:
+            existing_user = get_users_collection().find_one({'phone_number': phone_number})
+            print(f"Existing user: {existing_user}")
+        except Exception as db_error:
+            print(f"Database error: {str(db_error)}")
+            return jsonify({'error': f'Database error: {str(db_error)}'}), 500
         
         # For signup: fail if user exists
         if is_signup and existing_user:
@@ -75,12 +97,28 @@ def send_verification():
         if not is_signup and not existing_user:
             return jsonify({'error': 'No account found with this phone number'}), 404
         
-        # Send verification code via Twilio
-        verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
-            .verifications.create(to=phone_number, channel='sms')
+        # Send verification code
+        verification_status = 'pending'
         
-        if verification.status != 'pending':
-            return jsonify({'error': 'Failed to send verification code'}), 500
+        if IS_DEVELOPMENT:
+            # Use mock verification in development
+            verification = mock_send_verification(phone_number)
+            verification_status = verification['status']
+        else:
+            # Use Twilio in production
+            try:
+                print(f"Sending verification to {phone_number} using service SID: {TWILIO_VERIFY_SERVICE_SID}")
+                verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
+                    .verifications.create(to=phone_number, channel='sms')
+                
+                print(f"Verification status: {verification.status}")
+                verification_status = verification.status
+            except Exception as twilio_error:
+                print(f"Twilio error: {str(twilio_error)}")
+                return jsonify({'error': f'Twilio error: {str(twilio_error)}'}), 500
+        
+        if verification_status != 'pending':
+            return jsonify({'error': f'Failed to send verification code. Status: {verification_status}'}), 500
         
         return jsonify({
             'message': 'Verification code sent successfully',
@@ -88,6 +126,7 @@ def send_verification():
         })
     
     except Exception as e:
+        print(f"Unexpected error: {str(e)}")
         return jsonify({'error': f'Failed to send verification: {str(e)}'}), 500
 
 @auth_bp.route('/verify-code', methods=['POST'])
@@ -99,24 +138,64 @@ def verify_code():
         return jsonify({'error': 'Phone number and verification code are required'}), 400
     
     phone_number = data['phone_number']
+    print(f"Original phone number for verification: {phone_number}")
+    
+    # Validate phone number format
     if not phone_number.startswith('+'):
-        phone_number = '+' + phone_number
+        # Remove all non-digit characters using Python's re module
+        phone_number = '+1' + re.sub(r'\D', '', phone_number)
+    
+    print(f"Formatted phone number for verification: {phone_number}")
     
     code = data['code']
     is_signup = 'first_name' in data and 'last_name' in data
     
     try:
+        # Check if MongoDB is properly configured
+        if not MONGO_URI:
+            print("WARNING: MONGO_URI is not set")
+            return jsonify({'error': 'Database configuration error'}), 500
+            
+        # Check if Twilio is properly configured
+        if not twilio_client and not IS_DEVELOPMENT:
+            print("WARNING: Twilio client is not initialized")
+            return jsonify({'error': 'Twilio configuration error'}), 500
+            
+        if not TWILIO_VERIFY_SERVICE_SID and not IS_DEVELOPMENT:
+            print("WARNING: TWILIO_VERIFY_SERVICE_SID is not set")
+            return jsonify({'error': 'Twilio service SID not configured'}), 500
+    
         # Check if user exists for signup
         if is_signup:
-            existing_user = users_collection.find_one({'phone_number': phone_number})
-            if existing_user:
-                return jsonify({'error': 'A user with this phone number already exists'}), 400
+            try:
+                existing_user = get_users_collection().find_one({'phone_number': phone_number})
+                if existing_user:
+                    return jsonify({'error': 'A user with this phone number already exists'}), 400
+            except Exception as db_error:
+                print(f"Database error: {str(db_error)}")
+                return jsonify({'error': f'Database error: {str(db_error)}'}), 500
 
-        # Verify the code with Twilio
-        verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
-            .verification_checks.create(to=phone_number, code=code)
+        # Verify the code
+        verification_status = 'approved'
         
-        if verification.status == 'approved':
+        if IS_DEVELOPMENT:
+            # Use mock verification in development
+            verification = mock_check_verification(phone_number, code)
+            verification_status = verification['status']
+        else:
+            # Use Twilio in production
+            try:
+                print(f"Verifying code for {phone_number} using service SID: {TWILIO_VERIFY_SERVICE_SID}")
+                verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
+                    .verification_checks.create(to=phone_number, code=code)
+                
+                print(f"Verification check status: {verification.status}")
+                verification_status = verification.status
+            except Exception as twilio_error:
+                print(f"Twilio error during verification: {str(twilio_error)}")
+                return jsonify({'error': f'Twilio error: {str(twilio_error)}'}), 500
+            
+        if verification_status == 'approved':
             if is_signup:
                 # Create new user
                 new_user = {
@@ -124,34 +203,51 @@ def verify_code():
                     'first_name': data['first_name'],
                     'last_name': data['last_name'],
                     'status': 'verified',
-                    'created_at': datetime.now(timezone.utc)
+                    'created_at': datetime.now(timezone.utc),
+                    'plaid_connected': False
                 }
-                users_collection.insert_one(new_user)
-                user_data = new_user
+                
+                try:
+                    get_users_collection().insert_one(new_user)
+                    user_data = new_user
+                except Exception as db_error:
+                    print(f"Database error during user creation: {str(db_error)}")
+                    return jsonify({'error': f'Database error: {str(db_error)}'}), 500
             else:
                 # Get existing user data
-                user_data = users_collection.find_one({'phone_number': phone_number})
+                try:
+                    user_data = get_users_collection().find_one({'phone_number': phone_number})
+                    if not user_data:
+                        return jsonify({'error': 'User not found after verification'}), 404
+                except Exception as db_error:
+                    print(f"Database error retrieving user: {str(db_error)}")
+                    return jsonify({'error': f'Database error: {str(db_error)}'}), 500
             
             # Generate JWT token
             tokens = generate_jwt_token(phone_number)
             
+            # Add plaid_enabled flag for frontend
             return jsonify({
                 'message': 'Verification successful',
                 'authenticated': True,
                 'tokens': tokens,
                 'phone_number': phone_number,
                 'first_name': user_data['first_name'],
-                'last_name': user_data['last_name']
+                'last_name': user_data['last_name'],
+                'plaid_enabled': True,
+                'plaid_connected': user_data.get('plaid_connected', False),
+                'next_step': 'link_bank_account'
             })
         else:
             return jsonify({
                 'message': 'Invalid verification code',
                 'authenticated': False,
                 'status': 'failed',
-                'error': verification.status
+                'error': verification_status
             }), 401
     
     except Exception as e:
+        print(f"Unexpected error during verification: {str(e)}")
         return jsonify({'error': f'Failed to verify code: {str(e)}'}), 500
 
 # Example of a protected route using flask_jwt_extended
@@ -204,7 +300,7 @@ def logout_all():
 
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
-    """Handle user signup."""
+    """Register a new user."""
     data = request.get_json()
     
     if not data or 'phone_number' not in data or 'first_name' not in data or 'last_name' not in data:
@@ -214,17 +310,62 @@ def signup():
     first_name = data['first_name']
     last_name = data['last_name']
     
+    print(f"Signup request for: {first_name} {last_name}, phone: {phone_number}")
+    
     # Validate phone number format
     if not phone_number.startswith('+'):
-        phone_number = '+1' + phone_number.replace('/\D/g, ')
+        # Remove all non-digit characters using Python's re module
+        phone_number = '+1' + re.sub(r'\D', '', phone_number)
+    
+    print(f"Formatted phone number for signup: {phone_number}")
     
     try:
-        # Send verification code via Twilio
-        verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
-            .verifications.create(to=phone_number, channel='sms')
+        # Check if MongoDB is properly configured
+        if not MONGO_URI:
+            print("WARNING: MONGO_URI is not set")
+            return jsonify({'error': 'Database configuration error'}), 500
+            
+        # Check if Twilio is properly configured
+        if not twilio_client and not IS_DEVELOPMENT:
+            print("WARNING: Twilio client is not initialized")
+            return jsonify({'error': 'Twilio configuration error'}), 500
+            
+        if not TWILIO_VERIFY_SERVICE_SID and not IS_DEVELOPMENT:
+            print("WARNING: TWILIO_VERIFY_SERVICE_SID is not set")
+            return jsonify({'error': 'Twilio service SID not configured'}), 500
         
-        if verification.status != 'pending':
-            return jsonify({'error': 'Failed to send verification code'}), 500
+        # Check if user already exists
+        try:
+            existing_user = get_users_collection().find_one({'phone_number': phone_number})
+            if existing_user:
+                print(f"User with phone {phone_number} already exists")
+                return jsonify({'error': 'A user with this phone number already exists'}), 400
+        except Exception as db_error:
+            print(f"Database error checking existing user: {str(db_error)}")
+            return jsonify({'error': f'Database error: {str(db_error)}'}), 500
+        
+        # Send verification code
+        verification_status = 'pending'
+        
+        if IS_DEVELOPMENT:
+            # Use mock verification in development
+            verification = mock_send_verification(phone_number)
+            verification_status = verification['status']
+        else:
+            # Use Twilio in production
+            try:
+                print(f"Sending verification to {phone_number} for signup using service SID: {TWILIO_VERIFY_SERVICE_SID}")
+                verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
+                    .verifications.create(to=phone_number, channel='sms')
+                
+                print(f"Signup verification status: {verification.status}")
+                verification_status = verification.status
+            except Exception as twilio_error:
+                print(f"Twilio error during signup: {str(twilio_error)}")
+                return jsonify({'error': f'Twilio error: {str(twilio_error)}'}), 500
+        
+        if verification_status != 'pending':
+            return jsonify({'error': f'Failed to send verification code. Status: {verification_status}'}), 500
         
         return jsonify({
             'message': 'Verification code sent successfully',
@@ -232,4 +373,5 @@ def signup():
         })
     
     except Exception as e:
+        print(f"Unexpected error during signup: {str(e)}")
         return jsonify({'error': f'Failed to send verification: {str(e)}'}), 500 

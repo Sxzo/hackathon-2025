@@ -7,3 +7,5 @@ pytest==7.4.3
 requests==2.31.0
 flask-jwt-extended==4.7.1
 plaid-python==16.0.0
+flask-pymongo==2.3.0
+pymongo==4.6.1

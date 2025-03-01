@@ -2,13 +2,18 @@ from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from app.config import Config
+from app.database import mongo, init_db
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    # Initialize JWT
+    # Initialize extensions
+    CORS(app)
     jwt = JWTManager(app)
+    
+    # Initialize database
+    init_db(app)
     
     # Import here to avoid circular imports
     from app.api.routes.auth import jwt_blocklist, auth_bp
