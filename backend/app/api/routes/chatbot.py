@@ -84,6 +84,10 @@ def chat():
         # Get chat history from the database or initialize if not exists
         chat_history = user.get("chat_history", [])
         
+        # Get model settings from the database or use defaults
+        model = user.get("settings", {}).get("model", "gpt-4o-mini")
+        temperature = user.get("settings", {}).get("temperature", 0.7)
+        
         # Prepare messages for OpenAI
         messages = [
             {
@@ -93,6 +97,7 @@ You have access to the user's transaction history from their bank account.
 Use this information to provide personalized financial advice and answer questions.
 Be concise, helpful, and accurate. If you don't know something, say so.
 Do not make up information that is not in the transaction history.
+Some transactions are positive, and some are negative. Positive transactions should be shown as a loss in money, and negative transactions should be shown as a gain in money. AKA a negative transaction is a refund.
 
 Transaction history:
 {transaction_history}"""
@@ -109,9 +114,9 @@ Transaction history:
         print("Calling OpenAI API...")
         # Call OpenAI API with the new format
         response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,
             messages=messages,
-            temperature=0.7,
+            temperature=temperature,
             max_tokens=500
         )
         
