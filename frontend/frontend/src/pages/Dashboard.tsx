@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { BsCreditCard2Front } from 'react-icons/bs';
 import { FiChevronDown, FiCheck, FiEdit2 } from 'react-icons/fi';
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import PlaidTransactionTest from '../components/PlaidTransactionTest';
+import TransactionsList from '../components/TransactionsList';
 
 const Dashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -333,131 +335,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* New Transactions Section */}
-        <div className="mt-6">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-16 h-1 bg-[#d03027]"></div>
-            
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-[#004977]">Recent Transactions</h2>
-              
-              <div className="relative">
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center justify-between w-64 p-2.5 bg-white border rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-[#004977] transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    {selectedCard.icon}
-                    <span className="text-gray-700">{selectedCard.name}</span>
-                  </div>
-                  <FiChevronDown
-                    className={`text-gray-500 transition-transform duration-200 ${
-                      isDropdownOpen ? 'transform rotate-180' : ''
-                    }`}
-                  />
-                </button>
-
-                {isDropdownOpen && (
-                  <div className="absolute z-10 w-64 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg">
-                    {cards.map((card) => (
-                      <button
-                        key={card.id}
-                        onClick={() => handleCardSelect(card)}
-                        className={`flex items-center gap-2 w-full p-2.5 text-left hover:bg-gray-50 transition-colors ${
-                          selectedCard.id === card.id ? 'bg-gray-50' : ''
-                        }`}
-                      >
-                        {card.icon}
-                        <span className="text-gray-700">{card.name}</span>
-                        {selectedCard.id === card.id && (
-                          <FiCheck className="ml-auto text-[#004977]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-gray-600 font-medium">Date</th>
-                    <th className="text-left py-3 px-4 text-gray-600 font-medium">Merchant</th>
-                    <th className="text-left py-3 px-4 text-gray-600 font-medium">Category</th>
-                    <th className="text-right py-3 px-4 text-gray-600 font-medium">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Sample transactions - In a real app, this would come from your API */}
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Mar 15, 2024</div>
-                      <div className="text-xs text-gray-500">8:30 PM</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Whole Foods Market</div>
-                      <div className="text-xs text-gray-500">#TX123456</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Groceries</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#d03027] font-medium">-$156.78</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Mar 14, 2024</div>
-                      <div className="text-xs text-gray-500">2:15 PM</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Amazon.com</div>
-                      <div className="text-xs text-gray-500">#TX123455</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">Shopping</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#d03027] font-medium">-$89.99</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Mar 14, 2024</div>
-                      <div className="text-xs text-gray-500">11:45 AM</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Starbucks</div>
-                      <div className="text-xs text-gray-500">#TX123454</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded">Dining</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#d03027] font-medium">-$5.65</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Mar 13, 2024</div>
-                      <div className="text-xs text-gray-500">7:20 PM</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-gray-800">Netflix</div>
-                      <div className="text-xs text-gray-500">#TX123453</div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">Entertainment</span>
-                    </td>
-                    <td className="py-3 px-4 text-right text-[#d03027] font-medium">-$15.99</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-4 text-right">
-              <button className="text-[#004977] hover:text-[#003d66] text-sm font-medium">
-                View All Transactions →
-              </button>
-            </div>
-          </div>
-        </div>
+        <TransactionsList />
 
         {renderBudgetModal()}
       </div>

@@ -1,0 +1,64 @@
+[
+    {
+        "id": "pVDGPWxQdpTRjAgk6pkRF76pM73zWZupQq7Q6",
+        "date": "Tue, 18 Feb 2025 00:00:00 GMT",
+        "name": "Uber 063015 SF**POOL**",
+        "amount": 5.4,
+        "category": [
+            "Travel",
+            "Taxi"
+        ]
+    },
+    {
+        "id": "oVDAJw3ekNTbem9kDXkbSD5XeD7rEdCoVPJV4",
+        "date": "Sun, 16 Feb 2025 00:00:00 GMT",
+        "name": "United Airlines",
+        "amount": -500,
+        "category": [
+            "Travel",
+            "Airlines and Aviation Services"
+        ]
+    },
+    {
+        "id": "gVX1PmyxLZTwZAyNrxNwsrPAxrKbpoiE7Ge7l",
+        "date": "Sat, 15 Feb 2025 00:00:00 GMT",
+        "name": "McDonald's",
+        "amount": 12,
+        "category": [
+            "Food and Drink",
+            "Restaurants",
+            "Fast Food"
+        ]
+    },
+    {
+        "id": "8GmzD91b8Vclq9Lro3rlt1ArL13eBJIWJRPJw",
+        "date": "Sat, 15 Feb 2025 00:00:00 GMT",
+        "name": "Starbucks",
+        "amount": 4.33,
+        "category": [
+            "Food and Drink",
+            "Restaurants",
+            "Coffee Shop"
+        ]
+    },
+    {
+        "id": "E4KZwkydgEsj9A7GQRGjiGrJRGMwNBF45Ma54",
+        "date": "Fri, 14 Feb 2025 00:00:00 GMT",
+        "name": "SparkFun",
+        "amount": 89.4,
+        "category": [
+            "Food and Drink",
+            "Restaurants"
+        ]
+    },
+    {
+        "id": "WGMrLPQWegcdNQ86q96dio3E9oQdZAU6Q5dQP",
+        "date": "Sat, 01 Feb 2025 00:00:00 GMT",
+        "name": "Uber 072515 SF**POOL**",
+        "amount": 6.33,
+        "category": [
+            "Travel",
+            "Taxi"
+        ]
+    }
+]
