@@ -143,4 +143,31 @@ export const getAccountStatus = async (token: string) => {
     console.error('Error getting account status:', error);
     throw error;
   }
+};
+
+/**
+ * Get stock transactions for a user
+ * @param token JWT token for authentication
+ * @param days Number of days to look back
+ * @returns The stock transactions
+ */
+export const getStockTransactions = async (token: string, days: number = 365) => {
+  try {
+    const response = await fetch(`${API_URL}/plaid/transactions?stock_only=true&days=${days}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to get stock transactions');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting stock transactions:', error);
+    throw error;
+  }
 }; 
