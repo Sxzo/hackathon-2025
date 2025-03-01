@@ -50,7 +50,7 @@ twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_
 
 default_settings = {
     'timezone': 'America/New_York',  # This will be overridden by user input
-    'notification_time': '09:00',
+    'notification_time': '03:00 PM',
     'model': 'gpt-4',
     'temperature': 0.7,
     'financial_weekly_summary': True,

@@ -15,6 +15,7 @@ const Settings = () => {
   const [timezone, setTimezone] = useState('America/New_York');
   const [weeklyNotifications, setWeeklyNotifications] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Store original values for reverting changes
   const [originalValues, setOriginalValues] = useState({
@@ -88,21 +89,29 @@ const Settings = () => {
     if (!token) return;
     
     try {
+      setIsSaving(true);
+      
+      // Format time to ensure it's in HH:MM format
+      const formattedTime = notificationTime.length === 5 ? 
+        notificationTime : // Already in HH:MM format
+        notificationTime.padStart(5, '0'); // Ensure proper formatting
+      
       // Map frontend state to backend settings format
       const settingsToUpdate = {
-        notification_time: notificationTime,
+        notification_time: formattedTime,
         model: selectedModel,
         temperature: temperature,
         timezone: timezone,
         financial_weekly_summary: weeklyNotifications,
-        financial_weekly_summary_time: notificationTime // Using same time for weekly summary
+        financial_weekly_summary_time: formattedTime // Using same time for weekly summary
       };
       
+      console.log('Saving settings:', settingsToUpdate);
       await updateUserSettings(token, settingsToUpdate);
       
       // Update original values after successful save
       setOriginalValues({
-        notificationTime,
+        notificationTime: formattedTime,
         selectedModel,
         temperature,
         timezone,
@@ -114,6 +123,8 @@ const Settings = () => {
     } catch (error) {
       console.error('Failed to save settings:', error);
       toast.error('Failed to save settings. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
