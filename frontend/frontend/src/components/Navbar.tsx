@@ -67,12 +67,20 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#004977] hover:bg-[#003d66] transition-colors"
-              >
-                Sign In
-              </Link>
+              <div className="flex items-center space-x-3">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#004977] hover:bg-[#003d66] transition-colors"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center px-4 py-2 border border-[#d03027] text-sm font-medium rounded-md text-[#d03027] hover:bg-[#d03027] hover:text-white transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </div>
             )}
           </div>
         </div>

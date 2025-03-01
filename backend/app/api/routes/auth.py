@@ -32,6 +32,8 @@ mongo_client = MongoClient(MONGO_URI)
 db = mongo_client.finn_ai
 users_collection = db.users
 
+
+
 def generate_jwt_token(phone_number):
     """Generate JWT tokens for authentication."""
     # Create access token with phone number as identity
