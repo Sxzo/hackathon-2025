@@ -11,6 +11,7 @@ from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
 from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from app.database import get_users_collection
 
 plaid_bp = Blueprint('plaid', __name__)
 
@@ -91,6 +92,11 @@ def exchange_public_token():
         # In a production app, you would store these tokens in a database
         # associated with the user's account
         # For this example, we'll just return them
+        users_collection = get_users_collection()
+        users_collection.update_one(
+            {"phone_number": phone_number},
+            {"$set": {"plaid_access_token": access_token, "plaid_item_id": item_id}}
+        )
         
         return jsonify({
             'access_token': access_token,
@@ -111,12 +117,19 @@ def get_transactions():
     phone_number = get_jwt_identity()
     
     # Get access token from query parameter
-    access_token = request.args.get('access_token')
+    # access_token = request.args.get('access_token')
     
-    if not access_token:
-        return jsonify({'error': 'Access token is required'}), 400
+    # if not access_token:
+    #     return jsonify({'error': 'Access token is required'}), 400
     
     try:
+        users_collection = get_users_collection()
+        user = users_collection.find_one({"phone_number": phone_number})
+        
+        if not user or "plaid_access_token" not in user:
+            return jsonify({'error': 'No linked bank account found'}), 404
+        
+        access_token = user["plaid_access_token"]
         # Set date range for transactions (last 30 days)
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=30)
@@ -167,6 +180,20 @@ def signup_transactions():
         access_token = exchange_response['access_token']
         item_id = exchange_response['item_id']
         print(access_token)
+        
+        users_collection = get_users_collection()
+        existing_user = users_collection.find_one({"phone_number": phone_number})
+        if existing_user:
+            users_collection.update_one(
+                {"phone_number": phone_number},
+                {"$set": {"plaid_access_token": access_token, "plaid_item_id": item_id}}
+            )
+        else:
+            users_collection.insert_one({
+                "phone_number": phone_number,
+                "plaid_access_token": access_token,
+                "plaid_item_id": item_id
+            })
         # Set date range for transactions (last 30 days)
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=30)
@@ -197,5 +224,28 @@ def signup_transactions():
     except plaid.ApiException as e:
         error_response = e.body
         return jsonify({'error': error_response}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@plaid_bp.route('/account-status', methods=['GET'])
+@jwt_required()
+def get_account_status():
+    """Check if the user has a linked bank account."""
+    phone_number = get_jwt_identity()
+    
+    try:
+        # Check if the user has a stored access token
+        users_collection = get_users_collection()
+        
+        user = users_collection.find_one({"phone_number": phone_number})
+        
+        if user and "plaid_access_token" in user:
+            return jsonify({
+                'plaid_connected': True
+            })
+        else:
+            return jsonify({
+                'plaid_connected': False
+            })
     except Exception as e:
         return jsonify({'error': str(e)}), 500 
