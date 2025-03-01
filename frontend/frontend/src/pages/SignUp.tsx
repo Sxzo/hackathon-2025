@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { FiArrowRight, FiPhone, FiLock, FiUser } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
+const API_URL = 'http://localhost:5001/api';
+
 const SignUp = () => {
   const [step, setStep] = useState<'details' | 'verification'>('details');
   const [firstName, setFirstName] = useState('');
@@ -33,13 +35,29 @@ const SignUp = () => {
     setIsLoading(true);
     
     try {
-      setTimeout(() => {
-        setIsLoading(false);
-        setStep('verification');
-      }, 1000);
+      const response = await fetch(`${API_URL}/auth/send-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber.replace(/\D/g, '')}`,
+          first_name: firstName,
+          last_name: lastName
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send verification code');
+      }
+
+      setStep('verification');
     } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send verification code');
+    } finally {
       setIsLoading(false);
-      setError('Failed to send verification code. Please try again.');
     }
   };
 
@@ -55,15 +73,35 @@ const SignUp = () => {
     setIsLoading(true);
     
     try {
-      setTimeout(() => {
-        const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
-        login(mockToken, phoneNumber);
-        setIsLoading(false);
+      const response = await fetch(`${API_URL}/auth/verify-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber.replace(/\D/g, '')}`,
+          code: verificationCode,
+          first_name: firstName,
+          last_name: lastName
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error('Invalid verification code');
+      }
+
+      if (data.authenticated && data.tokens) {
+        login(data.tokens.access_token, data.phone_number);
         navigate('/dashboard');
-      }, 1000);
+      } else {
+        throw new Error('Invalid verification code');
+      }
     } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid verification code');
+    } finally {
       setIsLoading(false);
-      setError('Invalid verification code. Please try again.');
     }
   };
 

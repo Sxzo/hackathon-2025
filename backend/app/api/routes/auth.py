@@ -10,6 +10,7 @@ from flask_jwt_extended import (
 )
 from datetime import datetime, timezone
 from functools import wraps
+from pymongo import MongoClient
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -24,6 +25,12 @@ TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
 
 # Initialize Twilio client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN else None
+
+# Initialize MongoDB client
+MONGO_URI = os.environ.get('MONGO_URI')
+mongo_client = MongoClient(MONGO_URI)
+db = mongo_client.finn_ai
+users_collection = db.users
 
 def generate_jwt_token(phone_number):
     """Generate JWT tokens for authentication."""
@@ -43,26 +50,37 @@ def generate_jwt_token(phone_number):
 def send_verification():
     """Send a verification code via Twilio Verify."""
     data = request.get_json()
-    print(data)
+    
     if not data or 'phone_number' not in data:
         return jsonify({'error': 'Phone number is required'}), 400
     
     phone_number = data['phone_number']
     
-    # Validate phone number format (basic validation)
+    # Validate phone number format
     if not phone_number.startswith('+'):
-        phone_number = '+1' + phone_number
-    
-    # Check if Twilio is configured
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_VERIFY_SERVICE_SID:
-        return jsonify({'error': 'Twilio Verify is not configured'}), 500
+        phone_number = '+1' + phone_number.replace('/\D/g, ')
     
     try:
-        # Use direct API call to Twilio Verify
-        verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verifications.create(to=phone_number, channel='sms')
+        # Check if this is a signup request (has first_name and last_name)
+        is_signup = 'first_name' in data and 'last_name' in data
+        
+        # Check if user exists
+        existing_user = users_collection.find_one({'phone_number': phone_number})
+        
+        # For signup: fail if user exists
+        if is_signup and existing_user:
+            return jsonify({'error': 'A user with this phone number already exists'}), 400
+            
+        # For login: fail if user doesn't exist
+        if not is_signup and not existing_user:
+            return jsonify({'error': 'No account found with this phone number'}), 404
+        
+        # Send verification code via Twilio
+        verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
+            .verifications.create(to=phone_number, channel='sms')
         
         if verification.status != 'pending':
-            return verification
+            return jsonify({'error': 'Failed to send verification code'}), 500
         
         return jsonify({
             'message': 'Verification code sent successfully',
@@ -85,17 +103,32 @@ def verify_code():
         phone_number = '+' + phone_number
     
     code = data['code']
-    
-    # Check if Twilio is configured
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_VERIFY_SERVICE_SID:
-        return jsonify({'error': 'Twilio Verify is not configured'}), 500
+    is_signup = 'first_name' in data and 'last_name' in data
     
     try:
-        # Use direct API call to Twilio Verify
-        verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verification_checks.create(to=phone_number, code=code)
+        # Check if user exists for signup
+        if is_signup:
+            existing_user = users_collection.find_one({'phone_number': phone_number})
+            if existing_user:
+                return jsonify({'error': 'A user with this phone number already exists'}), 400
+
+        # Verify the code with Twilio
+        verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
+            .verification_checks.create(to=phone_number, code=code)
         
         if verification.status == 'approved':
-            # Generate JWT token with phone number as identity
+            if is_signup:
+                # Create new user
+                new_user = {
+                    'phone_number': phone_number,
+                    'first_name': data['first_name'],
+                    'last_name': data['last_name'],
+                    'status': 'verified',
+                    'created_at': datetime.now(timezone.utc)
+                }
+                users_collection.insert_one(new_user)
+            
+            # Generate JWT token
             tokens = generate_jwt_token(phone_number)
             
             return jsonify({
@@ -161,4 +194,36 @@ def logout_all():
     # For demonstration, we're just revoking the current token
     jti = get_jwt()["jti"]
     jwt_blocklist.add(jti)
-    return jsonify(message=f"Successfully logged out from all devices for {current_user}"), 200 
+    return jsonify(message=f"Successfully logged out from all devices for {current_user}"), 200
+
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
+    """Handle user signup."""
+    data = request.get_json()
+    
+    if not data or 'phone_number' not in data or 'first_name' not in data or 'last_name' not in data:
+        return jsonify({'error': 'Phone number and name are required'}), 400
+    
+    phone_number = data['phone_number']
+    first_name = data['first_name']
+    last_name = data['last_name']
+    
+    # Validate phone number format
+    if not phone_number.startswith('+'):
+        phone_number = '+1' + phone_number.replace('/\D/g, ')
+    
+    try:
+        # Send verification code via Twilio
+        verification = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
+            .verifications.create(to=phone_number, channel='sms')
+        
+        if verification.status != 'pending':
+            return jsonify({'error': 'Failed to send verification code'}), 500
+        
+        return jsonify({
+            'message': 'Verification code sent successfully',
+            'status': 'pending'
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f'Failed to send verification: {str(e)}'}), 500 
