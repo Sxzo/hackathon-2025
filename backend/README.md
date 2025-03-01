@@ -80,7 +80,11 @@ Response (success):
 {
   "message": "Verification successful",
   "authenticated": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "tokens": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "Bearer"
+  },
   "phone_number": "+1234567890"
 }
 ```
@@ -113,14 +117,71 @@ Response:
 }
 ```
 
+### Refresh Token
+
+```
+POST /api/auth/refresh
+```
+
+Headers:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (refresh token)
+```
+
+Response:
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "Bearer"
+}
+```
+
+### Logout (Revoke Token)
+
+```
+DELETE /api/auth/logout
+```
+
+Headers:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+Response:
+```json
+{
+  "message": "Successfully logged out"
+}
+```
+
+### Logout from All Devices
+
+```
+DELETE /api/auth/logout-all
+```
+
+Headers:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+Response:
+```json
+{
+  "message": "Successfully logged out from all devices for +1234567890"
+}
+```
+
 ## JWT Authentication
 
 This application uses JWT (JSON Web Tokens) for authentication:
 
-1. When a user verifies their phone number, they receive a JWT token
-2. The token contains the user's phone number as the identity (subject)
-3. For protected routes, include the token in the Authorization header
-4. The token expires after 24 hours (configurable in .env)
+1. When a user verifies their phone number, they receive access and refresh tokens
+2. The tokens contain the user's phone number as the identity (subject)
+3. For protected routes, include the access token in the Authorization header
+4. The access token expires after 24 hours (configurable in .env)
+5. The refresh token can be used to obtain a new access token
+6. Tokens can be revoked (logout functionality)
 
 ## Using JWT in Your Application
 
@@ -133,6 +194,7 @@ To access protected routes:
 
 2. The server will:
    - Validate the token
+   - Check if the token has been revoked
    - Extract the phone number
    - Allow access to the protected resource
 
@@ -156,13 +218,35 @@ This script will:
 
 ### Automated Testing
 
-For automated testing (e.g., in CI/CD pipelines), use the pytest-based tests:
+The project includes a comprehensive test suite organized in the `tests` directory:
 
 ```
-pytest test_auth_automated.py -v
+tests/
+├── __init__.py
+├── README.md
+└── jwt/
+    ├── __init__.py
+    ├── README.md
+    ├── run_all_tests.py
+    ├── run_protected_routes_tests.py
+    ├── run_token_expiration_tests.py
+    ├── test_protected_routes.py
+    └── test_token_expiration.py
 ```
 
-These tests use mocking to simulate Twilio Verify responses, so they don't require actual SMS messages to be sent.
+To run all tests:
+
+```bash
+python run_tests.py
+```
+
+To run only JWT tests:
+
+```bash
+python run_tests.py --jwt
+```
+
+For more details about the tests, see the [tests README](tests/README.md).
 
 ## Security Considerations
 
@@ -170,4 +254,6 @@ These tests use mocking to simulate Twilio Verify responses, so they don't requi
 - Use HTTPS in production to secure API requests and JWT tokens
 - Never expose your Twilio credentials or SECRET_KEY in client-side code
 - Set a reasonable expiration time for JWT tokens
-- Consider implementing token refresh functionality for long-lived sessions 
+- Use refresh tokens for long-lived sessions
+- Implement token revocation (logout functionality)
+- Store revoked tokens in a persistent store (e.g., Redis) in production 
