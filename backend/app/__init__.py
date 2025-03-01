@@ -13,6 +13,7 @@ def create_app(config_class=Config):
     # Import here to avoid circular imports
     from app.api.routes.auth import jwt_blocklist, auth_bp
     from app.api.routes.main import main_bp
+    from app.api.routes.plaid import plaid_bp
     
     # JWT token callbacks
     @jwt.token_in_blocklist_loader
@@ -44,5 +45,6 @@ def create_app(config_class=Config):
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(main_bp, url_prefix='/api')
+    app.register_blueprint(plaid_bp, url_prefix='/api/plaid')
     
     return app 

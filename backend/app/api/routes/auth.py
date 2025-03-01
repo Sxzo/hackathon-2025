@@ -102,7 +102,9 @@ def verify_code():
                 'message': 'Verification successful',
                 'authenticated': True,
                 'tokens': tokens,
-                'phone_number': phone_number
+                'phone_number': phone_number,
+                'plaid_enabled': True,  # Flag to indicate Plaid integration is available
+                'next_step': 'link_bank_account'  # Suggest next step to client
             })
         else:
             return jsonify({

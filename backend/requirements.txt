@@ -6,3 +6,4 @@ PyJWT==2.8.0
 pytest==7.4.3
 requests==2.31.0
 flask-jwt-extended==4.7.1
+plaid-python==16.0.0
