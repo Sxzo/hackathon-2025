@@ -32,7 +32,16 @@ mongo_client = MongoClient(MONGO_URI)
 db = mongo_client.finn_ai
 users_collection = db.users
 
-
+default_settings = {
+    'timezone': 'America/New_York',  # This will be overridden by user input
+    'notification_time': '09:00',
+    'model': 'gpt-4',
+    'temperature': 0.7,
+    'financial_weekly_summary': True,
+    'financial_weekly_summary_time': '09:00',
+    'stock_weekly_summary': True,
+    'stock_weekly_summary_time': '09:00',
+}
 
 def generate_jwt_token(phone_number):
     """Generate JWT tokens for authentication."""
@@ -120,13 +129,20 @@ def verify_code():
         
         if verification.status == 'approved':
             if is_signup:
+                # Update default settings with user's timezone if provided
+                user_settings = default_settings.copy()
+                if 'timezone' in data:
+                    user_settings['timezone'] = data['timezone']
+
                 # Create new user
                 new_user = {
                     'phone_number': phone_number,
                     'first_name': data['first_name'],
                     'last_name': data['last_name'],
+                    'timezone': data['timezone'],
                     'status': 'verified',
-                    'created_at': datetime.now(timezone.utc)
+                    'created_at': datetime.now(timezone.utc),
+                    'settings': user_settings
                 }
                 users_collection.insert_one(new_user)
                 user_data = new_user
@@ -152,9 +168,9 @@ def verify_code():
                 'status': 'failed',
                 'error': verification.status
             }), 401
-    
+            
     except Exception as e:
-        return jsonify({'error': f'Failed to verify code: {str(e)}'}), 500
+        return jsonify({'error': f'Verification failed: {str(e)}'}), 500
 
 # Example of a protected route using flask_jwt_extended
 @auth_bp.route('/protected', methods=['GET'])

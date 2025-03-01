@@ -165,7 +165,7 @@ const Settings = () => {
               <div className="flex items-center justify-between p-4 border rounded-lg border-gray-200 hover:border-[#004977] transition-all">
                 <div>
                   <div className="font-medium text-gray-800">Weekly Stock Summary</div>
-                  <div className="text-sm text-gray-500">Receive a summary of your weekly stock performance</div>
+                  <div className="text-sm text-gray-500">Receive a summary of your weekly stock performance & news</div>
                 </div>
                 <div className="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" className="sr-only peer" defaultChecked />
