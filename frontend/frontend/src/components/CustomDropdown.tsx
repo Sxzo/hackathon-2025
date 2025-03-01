@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FiChevronDown } from 'react-icons/fi';
 
 interface Option {
@@ -15,28 +15,50 @@ interface CustomDropdownProps {
   className?: string;
 }
 
-const CustomDropdown = ({ options, value, onChange, label, className = '' }: CustomDropdownProps) => {
+const CustomDropdown: React.FC<CustomDropdownProps> = ({ 
+  label, 
+  options, 
+  value, 
+  onChange, 
+  className = '' 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const selectedOption = options.find(opt => opt.value === value);
-
+  
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-
+    
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
-
+  
+  const handleOptionClick = (optionValue: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+  
+  const toggleDropdown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
+  
+  const selectedOption = options.find(opt => opt.value === value);
+  
   return (
     <div className="relative" ref={dropdownRef}>
       {label && <label className="font-medium text-gray-700 mb-2 block">{label}</label>}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleDropdown}
         className={`w-full flex items-center justify-between p-3 bg-white border rounded-lg border-gray-300 
         hover:border-[#004977] focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-[#004977] 
         transition-all ${className}`}
@@ -58,10 +80,7 @@ const CustomDropdown = ({ options, value, onChange, label, className = '' }: Cus
             {options.map((option) => (
               <button
                 key={option.value}
-                onClick={() => {
-                  onChange(option.value);
-                  setIsOpen(false);
-                }}
+                onClick={(e) => handleOptionClick(option.value, e)}
                 className={`flex items-center gap-2 w-full p-3 text-left hover:bg-[#f0f7fc] transition-colors
                 ${value === option.value ? 'bg-[#f0f7fc] text-[#004977]' : 'text-gray-700'}`}
               >

@@ -24,6 +24,9 @@ const Settings = () => {
   const [entertainmentBudget, setEntertainmentBudget] = useState(200);
   const [targetBalance, setTargetBalance] = useState(5000);
   
+  // Add this to your state variables
+  const [weeklyUpdateDay, setWeeklyUpdateDay] = useState('Sunday');
+  
   // Store original values for reverting changes
   const [originalValues, setOriginalValues] = useState({
     notificationTime: '09:00',
@@ -35,7 +38,8 @@ const Settings = () => {
     shoppingBudget: 300,
     foodBudget: 500,
     entertainmentBudget: 200,
-    targetBalance: 5000
+    targetBalance: 5000,
+    weeklyUpdateDay: 'Sunday'
   });
   
   // Add these new state variables for handling input values
@@ -85,6 +89,7 @@ const Settings = () => {
         const tz = settings.timezone || 'America/New_York';
         const weeklySummary = settings.financial_weekly_summary !== undefined ? 
           settings.financial_weekly_summary : true;
+        const updateDay = settings.financial_weekly_update_day || 'Sunday';
         
         // Get budget settings with defaults
         const shopping = budgets.shopping || 300;
@@ -106,6 +111,7 @@ const Settings = () => {
         setFoodBudget(food);
         setEntertainmentBudget(entertainment);
         setTargetBalance(target);
+        setWeeklyUpdateDay(updateDay);
         
         // Set input values
         setShoppingBudgetInput(shopping.toString());
@@ -124,7 +130,8 @@ const Settings = () => {
           shoppingBudget: shopping,
           foodBudget: food,
           entertainmentBudget: entertainment,
-          targetBalance: target
+          targetBalance: target,
+          weeklyUpdateDay: updateDay
         });
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -138,7 +145,7 @@ const Settings = () => {
   }, [token]);
 
   useEffect(() => {
-    const changed = 
+    const changes = 
       notificationTime !== originalValues.notificationTime ||
       selectedModel !== originalValues.selectedModel ||
       temperature !== originalValues.temperature ||
@@ -147,15 +154,17 @@ const Settings = () => {
       shoppingBudget !== originalValues.shoppingBudget ||
       foodBudget !== originalValues.foodBudget ||
       entertainmentBudget !== originalValues.entertainmentBudget ||
-      targetBalance !== originalValues.targetBalance;
-    setHasChanges(changed);
+      targetBalance !== originalValues.targetBalance ||
+      weeklyUpdateDay !== originalValues.weeklyUpdateDay;
+    
+    setHasChanges(changes);
     
     // Update display time whenever notification time changes
     if (notificationTime !== originalValues.notificationTime) {
       setDisplayTime(formatTimeWithAMPM(notificationTime));
     }
   }, [notificationTime, selectedModel, temperature, timezone, weeklyNotifications, 
-      shoppingBudget, foodBudget, entertainmentBudget, targetBalance, originalValues]);
+      shoppingBudget, foodBudget, entertainmentBudget, targetBalance, originalValues, weeklyUpdateDay]);
 
   // Update these useEffect hooks to sync the input values when the actual values change
   useEffect(() => {
@@ -187,6 +196,7 @@ const Settings = () => {
         temperature: temperature,
         timezone: timezone,
         financial_weekly_summary: weeklyNotifications,
+        financial_weekly_update_day: weeklyUpdateDay,
         // Include budget settings
         shopping: shoppingBudget,
         food: foodBudget,
@@ -209,7 +219,8 @@ const Settings = () => {
         shoppingBudget,
         foodBudget,
         entertainmentBudget,
-        targetBalance
+        targetBalance,
+        weeklyUpdateDay
       });
       
       // Reset hasChanges flag
@@ -230,11 +241,21 @@ const Settings = () => {
     setTemperature(originalValues.temperature);
     setTimezone(originalValues.timezone);
     setWeeklyNotifications(originalValues.weeklyNotifications);
+    setDisplayTime(originalValues.displayTime);
     setShoppingBudget(originalValues.shoppingBudget);
     setFoodBudget(originalValues.foodBudget);
     setEntertainmentBudget(originalValues.entertainmentBudget);
     setTargetBalance(originalValues.targetBalance);
+    setWeeklyUpdateDay(originalValues.weeklyUpdateDay);
+    
+    // Reset input values
+    setShoppingBudgetInput(originalValues.shoppingBudget.toString());
+    setFoodBudgetInput(originalValues.foodBudget.toString());
+    setEntertainmentBudgetInput(originalValues.entertainmentBudget.toString());
+    setTargetBalanceInput(originalValues.targetBalance.toString());
+    
     setHasChanges(false);
+    toast.success('Changes discarded');
   };
 
   const handleWeeklyNotificationsToggle = () => {
@@ -265,6 +286,17 @@ const Settings = () => {
     setTargetBalanceInput(value);
     setTargetBalance(value === '' ? 0 : Number(value));
   };
+
+  // Create day options for the dropdown
+  const dayOptions = [
+    { value: 'Monday', label: 'Monday' },
+    { value: 'Tuesday', label: 'Tuesday' },
+    { value: 'Wednesday', label: 'Wednesday' },
+    { value: 'Thursday', label: 'Thursday' },
+    { value: 'Friday', label: 'Friday' },
+    { value: 'Saturday', label: 'Saturday' },
+    { value: 'Sunday', label: 'Sunday' }
+  ];
 
   if (isLoading) {
     return (
@@ -344,6 +376,20 @@ const Settings = () => {
                     </label>
                   </div>
                 </div>
+
+                {weeklyNotifications && (
+                  <div className="p-4 border rounded-lg border-gray-200">
+                    <div>
+                      <div className="font-medium text-gray-800 mb-2">Weekly Update Day</div>
+                      <CustomDropdown
+                        options={dayOptions}
+                        value={weeklyUpdateDay}
+                        onChange={setWeeklyUpdateDay}
+                        className="bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="p-4 border rounded-lg border-gray-200">
                   <div className="flex items-center justify-between">

@@ -74,8 +74,10 @@ def update_settings():
             'temperature', 
             'financial_weekly_summary',
             'financial_weekly_summary_time',
+            'financial_weekly_update_day',
             'stock_weekly_summary',
-            'stock_weekly_summary_time'
+            'stock_weekly_summary_time',
+            'stock_weekly_update_day'
         ]
         
         # Budget fields that can be updated

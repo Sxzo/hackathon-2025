@@ -54,7 +54,8 @@ default_settings = {
     'model': 'gpt4',
     'temperature': 0.7,
     'financial_weekly_summary': True,
-    'financial_weekly_summary_time': '15:00'
+    'financial_weekly_summary_time': '15:00',
+    'financial_weekly_update_day': 'Friday'
 }
 
 default_budgets = {
