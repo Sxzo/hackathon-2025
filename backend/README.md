@@ -257,3 +257,60 @@ For more details about the tests, see the [tests README](tests/README.md).
 - Use refresh tokens for long-lived sessions
 - Implement token revocation (logout functionality)
 - Store revoked tokens in a persistent store (e.g., Redis) in production 
+
+## Plaid Integration
+
+This application includes Plaid integration for accessing users' transaction history during signup. For detailed information about the Plaid integration, see [PLAID_INTEGRATION.md](PLAID_INTEGRATION.md).
+
+### Testing the Plaid Integration
+
+There are several ways to test the Plaid integration:
+
+#### 1. Unit Tests
+
+Run the unit tests for the Plaid integration:
+
+```bash
+pytest tests/test_plaid.py
+```
+
+These tests use mocks to simulate the Plaid API responses and verify that the endpoints work correctly.
+
+#### 2. Integration Tests
+
+Run the integration tests that simulate the entire flow from authentication to Plaid integration:
+
+```bash
+pytest tests/test_plaid_integration.py
+```
+
+These tests also use mocks but test the interaction between different parts of the application.
+
+#### 3. Manual Testing Script
+
+For manual testing with real Plaid API calls, use the provided script:
+
+```bash
+python tests/manual_plaid_test.py
+```
+
+This script provides a command-line interface to test the Plaid integration step by step:
+- Send verification code
+- Verify code and get tokens
+- Create Plaid link token
+- Exchange public token
+- Get transactions
+- Test signup with transactions flow
+
+#### 4. Postman Collection
+
+You can also use the Postman collection in the `postman` directory to test the API endpoints manually.
+
+### Plaid Sandbox Testing
+
+When testing in the Plaid sandbox environment, you can use these test credentials:
+- Username: `user_good`
+- Password: `pass_good`
+- Any valid MFA code (e.g., `1234`)
+
+For more test credentials, see: https://plaid.com/docs/sandbox/test-credentials/ 
