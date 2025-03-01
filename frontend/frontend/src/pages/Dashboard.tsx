@@ -293,7 +293,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-20">
+    <div className="bg-gray-50 min-h-screen pt-4">
       <div className="container mx-auto p-4">
         <div className="flex items-center mb-6">
           <h1 className="text-3xl font-bold text-[#004977]">Financial Overview</h1>

@@ -93,7 +93,12 @@ const SignUp = () => {
       }
 
       if (data.authenticated && data.tokens) {
-        login(data.tokens.access_token, data.phone_number);
+        login(
+          data.tokens.access_token, 
+          data.phone_number,
+          data.first_name,
+          data.last_name
+        );
         navigate('/dashboard');
       } else {
         throw new Error('Invalid verification code');
@@ -194,7 +199,7 @@ const SignUp = () => {
   );
 
   return (
-    <div className="bg-gray-50 min-h-screen pt-20">
+    <div className="bg-gray-50 min-h-screen pt-4">
       <div className="container mx-auto p-4 flex justify-center">
         <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-100 w-full max-w-md relative overflow-hidden">
           <h1 className="text-2xl font-bold mb-6 text-[#004977]">

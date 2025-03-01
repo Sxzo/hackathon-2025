@@ -127,6 +127,10 @@ def verify_code():
                     'created_at': datetime.now(timezone.utc)
                 }
                 users_collection.insert_one(new_user)
+                user_data = new_user
+            else:
+                # Get existing user data
+                user_data = users_collection.find_one({'phone_number': phone_number})
             
             # Generate JWT token
             tokens = generate_jwt_token(phone_number)
@@ -135,7 +139,9 @@ def verify_code():
                 'message': 'Verification successful',
                 'authenticated': True,
                 'tokens': tokens,
-                'phone_number': phone_number
+                'phone_number': phone_number,
+                'first_name': user_data['first_name'],
+                'last_name': user_data['last_name']
             })
         else:
             return jsonify({

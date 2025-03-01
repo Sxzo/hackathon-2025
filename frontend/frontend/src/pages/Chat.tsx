@@ -1,6 +1,6 @@
 const Chat = () => {
   return (
-    <div className="bg-gray-50 min-h-screen pt-20">
+    <div className="bg-gray-50 min-h-screen pt-4">
       <div className="container mx-auto p-4">
         <div className="bg-white rounded-lg shadow-sm h-[calc(100vh-120px)] flex flex-col border border-gray-100 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-[#d03027]"></div>
