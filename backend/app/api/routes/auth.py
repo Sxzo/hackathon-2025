@@ -43,7 +43,7 @@ def generate_jwt_token(phone_number):
 def send_verification():
     """Send a verification code via Twilio Verify."""
     data = request.get_json()
-    
+    print(data)
     if not data or 'phone_number' not in data:
         return jsonify({'error': 'Phone number is required'}), 400
     

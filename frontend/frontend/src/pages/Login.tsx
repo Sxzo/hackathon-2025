@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiArrowRight, FiPhone, FiLock } from 'react-icons/fi';
 
+const API_URL = 'http://localhost:5001/api';
+
 const Login = () => {
   const [step, setStep] = useState<'phone' | 'verification'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -25,15 +27,27 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // In a real app, you would call your API to send a verification code
-      // For demo purposes, we'll just move to the next step
-      setTimeout(() => {
-        setIsLoading(false);
-        setStep('verification');
-      }, 1000);
+      const response = await fetch(`${API_URL}/auth/send-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          phone_number: phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber.replace(/\D/g, '')}` 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send verification code');
+      }
+
+      setStep('verification');
     } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send verification code');
+    } finally {
       setIsLoading(false);
-      setError('Failed to send verification code. Please try again.');
     }
   };
 
@@ -49,18 +63,33 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // In a real app, you would verify the code with your API and get a JWT token
-      // For demo purposes, we'll just simulate a successful login
-      setTimeout(() => {
-        // Mock JWT token
-        const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwicGhvbmUiOiIrMTIzNDU2Nzg5MCIsImlhdCI6MTUxNjIzOTAyMn0';
-        login(mockToken, phoneNumber);
-        setIsLoading(false);
+      const response = await fetch(`${API_URL}/auth/verify-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber.replace(/\D/g, '')}`,
+          code: verificationCode
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error('Invalid Code');
+      }
+
+      if (data.authenticated && data.tokens) {
+        login(data.tokens.access_token, data.phone_number);
         navigate('/dashboard');
-      }, 1000);
+      } else {
+        throw new Error('Invalid Code');
+      }
     } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid Code');
+    } finally {
       setIsLoading(false);
-      setError('Invalid verification code. Please try again.');
     }
   };
 

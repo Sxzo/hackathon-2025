@@ -7,14 +7,12 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    # Initialize CORS
-    CORS(app)
-    
     # Initialize JWT
     jwt = JWTManager(app)
     
     # Import here to avoid circular imports
-    from app.api.routes.auth import jwt_blocklist
+    from app.api.routes.auth import jwt_blocklist, auth_bp
+    from app.api.routes.main import main_bp
     
     # JWT token callbacks
     @jwt.token_in_blocklist_loader
@@ -44,10 +42,7 @@ def create_app(config_class=Config):
         return {"message": "The token has been revoked", "error": "token_revoked"}, 401
     
     # Register blueprints
-    from app.api.routes.main import main_bp
-    from app.api.routes.auth import auth_bp
-    
-    app.register_blueprint(main_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(main_bp, url_prefix='/api')
     
     return app 
