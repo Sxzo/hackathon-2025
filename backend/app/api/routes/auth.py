@@ -1,12 +1,21 @@
 from flask import Blueprint, request, jsonify, current_app
 import os
-import jwt
-import requests
-from datetime import datetime, timedelta
 from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
+from flask_jwt_extended import (
+    create_access_token, 
+    create_refresh_token, 
+    jwt_required, 
+    get_jwt_identity,
+    get_jwt
+)
+from datetime import datetime, timezone
+from functools import wraps
 
 auth_bp = Blueprint('auth', __name__)
+
+# In-memory blocklist for revoked tokens
+# In a production environment, this should be stored in Redis or a database
+jwt_blocklist = set()
 
 # Twilio credentials should be stored in environment variables
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
@@ -17,20 +26,18 @@ TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN else None
 
 def generate_jwt_token(phone_number):
-    """Generate a JWT token with the phone number as the identity."""
-    payload = {
-        'sub': phone_number,  # Subject (identity)
-        'iat': datetime.utcnow(),  # Issued at
-        'exp': datetime.utcnow() + timedelta(seconds=current_app.config['JWT_EXPIRATION_DELTA'])  # Expiration
+    """Generate JWT tokens for authentication."""
+    # Create access token with phone number as identity
+    access_token = create_access_token(identity=phone_number)
+    
+    # Create refresh token
+    refresh_token = create_refresh_token(identity=phone_number)
+    
+    return {
+        'access_token': access_token,
+        'refresh_token': refresh_token,
+        'token_type': 'Bearer'
     }
-    
-    token = jwt.encode(
-        payload,
-        current_app.config['SECRET_KEY'],
-        algorithm='HS256'
-    )
-    
-    return token
 
 @auth_bp.route('/send-verification', methods=['POST'])
 def send_verification():
@@ -44,7 +51,7 @@ def send_verification():
     
     # Validate phone number format (basic validation)
     if not phone_number.startswith('+'):
-        phone_number = '+' + phone_number
+        phone_number = '+1' + phone_number
     
     # Check if Twilio is configured
     if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_VERIFY_SERVICE_SID:
@@ -89,12 +96,12 @@ def verify_code():
         
         if verification.status == 'approved':
             # Generate JWT token with phone number as identity
-            token = generate_jwt_token(phone_number)
+            tokens = generate_jwt_token(phone_number)
             
             return jsonify({
                 'message': 'Verification successful',
                 'authenticated': True,
-                'token': token,
+                'tokens': tokens,
                 'phone_number': phone_number
             })
         else:
@@ -108,51 +115,50 @@ def verify_code():
     except Exception as e:
         return jsonify({'error': f'Failed to verify code: {str(e)}'}), 500
 
-# Create a decorator for protected routes
-def token_required(f):
-    from functools import wraps
-    
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
-        
-        # Check if token is in the headers
-        auth_header = request.headers.get('Authorization')
-        if auth_header and auth_header.startswith('Bearer '):
-            token = auth_header.split(' ')[1]
-        
-        if not token:
-            return jsonify({'error': 'Token is missing'}), 401
-        
-        try:
-            # Decode the token
-            payload = jwt.decode(
-                token,
-                current_app.config['SECRET_KEY'],
-                algorithms=['HS256']
-            )
-            
-            # Extract phone number from token
-            phone_number = payload['sub']
-            
-            # Add phone_number to kwargs for the route function
-            kwargs['phone_number'] = phone_number
-            
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Token has expired'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'error': 'Invalid token'}), 401
-        
-        return f(*args, **kwargs)
-    
-    return decorated
-
-# Example of a protected route
+# Example of a protected route using flask_jwt_extended
 @auth_bp.route('/protected', methods=['GET'])
-@token_required
-def protected_route(phone_number):
+@jwt_required()
+def protected_route():
     """Example of a protected route that requires authentication."""
+    # Get the identity from the JWT token
+    current_user = get_jwt_identity()
+    
     return jsonify({
         'message': 'This is a protected route',
-        'phone_number': phone_number
-    }) 
+        'phone_number': current_user
+    })
+
+# Route to refresh tokens
+@auth_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh():
+    """Refresh the access token using a valid refresh token."""
+    current_user = get_jwt_identity()
+    new_access_token = create_access_token(identity=current_user)
+    
+    return jsonify({
+        'access_token': new_access_token,
+        'token_type': 'Bearer'
+    })
+
+# Route to logout (revoke token)
+@auth_bp.route('/logout', methods=['DELETE'])
+@jwt_required()
+def logout():
+    """Revoke the current access token."""
+    jti = get_jwt()["jti"]
+    jwt_blocklist.add(jti)
+    return jsonify(message="Successfully logged out"), 200
+
+# Route to logout from all devices (revoke all tokens)
+@auth_bp.route('/logout-all', methods=['DELETE'])
+@jwt_required()
+def logout_all():
+    """Revoke all tokens for the current user."""
+    # In a real application, you would query the database for all tokens
+    # belonging to the current user and add them to the blocklist
+    current_user = get_jwt_identity()
+    # For demonstration, we're just revoking the current token
+    jti = get_jwt()["jti"]
+    jwt_blocklist.add(jti)
+    return jsonify(message=f"Successfully logged out from all devices for {current_user}"), 200 
