@@ -54,9 +54,7 @@ default_settings = {
     'model': 'gpt-4',
     'temperature': 0.7,
     'financial_weekly_summary': True,
-    'financial_weekly_summary_time': '09:00',
-    'stock_weekly_summary': True,
-    'stock_weekly_summary_time': '09:00',
+    'financial_weekly_summary_time': '09:00'
 }
 
 def generate_jwt_token(phone_number):
