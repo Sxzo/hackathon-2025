@@ -9,8 +9,8 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    # Initialize extensions
-    CORS(app)
+    # Initialize extensions with specific CORS settings
+    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
     jwt = JWTManager(app)
     
     # Initialize database
@@ -20,6 +20,7 @@ def create_app(config_class=Config):
     from app.api.routes.auth import jwt_blocklist, auth_bp
     from app.api.routes.main import main_bp
     from app.api.routes.plaid import plaid_bp
+    from app.api.routes.chatbot import chatbot_bp
     from app.api.routes.settings import settings_bp
     
     # JWT token callbacks
@@ -53,6 +54,7 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(main_bp, url_prefix='/api')
     app.register_blueprint(plaid_bp, url_prefix='/api/plaid')
+    app.register_blueprint(chatbot_bp, url_prefix='/api/chatbot')
     app.register_blueprint(settings_bp, url_prefix='/api/settings')
     
     return app 

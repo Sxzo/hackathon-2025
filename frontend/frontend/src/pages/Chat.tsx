@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { FcCancel } from 'react-icons/fc'
+import { sendMessage } from '../services/chatService'
 
 interface Message {
   id: number;
@@ -18,6 +19,7 @@ const Chat = () => {
   const [typingSpeed, setTypingSpeed] = useState(50)
   const [aiThinkingTimeout, setAiThinkingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [promptSuggestions, setPromptSuggestions] = useState<string[]>([])
+  const [token, setToken] = useState<string | null>(null)
   
   const questions = [
     "How can I help with your finances today?",
@@ -33,39 +35,48 @@ const Chat = () => {
   ]
 
   const promptBank = [
-    "How can I create a monthly budget?",
-    "What are some ways to save for retirement?",
-    "How do I reduce my debt quickly?",
-    "What's the difference between a Roth IRA and a traditional IRA?",
-    "How much should I have in my emergency fund?",
-    "What's the best way to improve my credit score?",
-    "How do I start investing with little money?",
-    "Should I pay off my mortgage early or invest?",
-    "How do I negotiate a higher salary?",
-    "What's the 50/30/20 budgeting rule?",
-    "How do I save for my child's education?",
-    "What are index funds and why are they recommended?",
-    "How do I create a debt repayment plan?",
-    "What tax deductions am I eligible for?",
-    "How do I choose the right health insurance plan?",
-    "What's the best way to save for a house down payment?",
-    "How do I protect myself from identity theft?",
-    "Should I refinance my student loans?",
-    "What's the difference between term and whole life insurance?",
-    "How do I prepare financially for having a baby?",
-    "What should I do with a financial windfall?",
-    "How do I plan for healthcare costs in retirement?",
-    "What's the best way to track my expenses?",
-    "How do I start a side hustle to earn extra income?",
-    "What are the pros and cons of leasing vs. buying a car?",
-    "How do I talk to my partner about money?",
-    "What financial documents should I keep and for how long?",
-    "How do I calculate my net worth?",
-    "What's the best strategy for paying off multiple credit cards?",
-    "How do I financially prepare for a recession?"
+    "How much did I spend on groceries last month?",
+    "What are my largest expenses?",
+    "How much have I spent on dining out?",
+    "Show me my recent transactions",
+    "What's my average daily spending?",
+    "How much did I spend on entertainment?",
+    "What are my recurring subscriptions?",
+    "How much have I spent on transportation?",
+    "What was my biggest purchase last month?",
+    "How much did I spend on online shopping?",
+    "What's my spending pattern over the last month?",
+    "How much have I spent on utilities?",
+    "What categories do I spend the most on?",
+    "How much did I spend last weekend?",
+    "What's my average transaction amount?",
+    "How much have I spent on healthcare?",
+    "What's my spending trend this month?",
+    "How much did I spend on travel?",
+    "What's my total spending this month?",
+    "How much have I spent on coffee shops?",
+    "What's my largest recurring expense?",
+    "How much did I spend on Amazon?",
+    "What's my spending by day of week?",
+    "How much have I spent on clothing?",
+    "What's my average spending on weekends?",
+    "How much did I spend on gas?",
+    "What's my spending by time of day?",
+    "How much have I spent on electronics?",
+    "What's my spending compared to last month?",
+    "How much did I spend on home improvement?"
   ]
 
   useEffect(() => {
+    // Get token from localStorage
+    const storedToken = localStorage.getItem('finn_auth_token');
+    if (storedToken) {
+      console.log('Token found in localStorage:', storedToken.substring(0, 10) + '...');
+      setToken(storedToken);
+    } else {
+      console.warn('No token found in localStorage');
+    }
+    
     // Randomly select 3 unique prompts from the prompt bank
     const getRandomPrompts = () => {
       const shuffled = [...promptBank].sort(() => 0.5 - Math.random());
@@ -139,30 +150,57 @@ const Chat = () => {
       setHasInteracted(true)
     }
 
-    // Simulate AI response
-    const timeout = setTimeout(() => {
-      const aiResponses = [
-        "I understand you're asking about that. Let me help you with that.",
-        "Based on your question, I can provide some insights.",
-        "That's an interesting question. Here's what I think:",
-        "I can help you with that. Here's what you need to know:",
-        "Let me analyze that for you."
-      ]
-      
-      const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)]
-      
-      const aiMessage = {
+    try {
+      // Add a temporary "thinking" message
+      const thinkingMessage = {
         id: messages.length + 2,
-        text: randomResponse,
+        text: "Thinking...",
         isAi: true
       }
       
-      setMessages(prev => [...prev, aiMessage])
+      setMessages(prev => [...prev, thinkingMessage])
+      
+      // Send message to chatbot API
+      if (token) {
+        console.log('Sending message to chatbot service:', userMessage.text);
+        const response = await sendMessage(userMessage.text, token);
+        console.log('Received response from chatbot service:', response);
+        
+        // Replace the "thinking" message with the actual response
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === thinkingMessage.id 
+              ? { ...msg, text: response.response } 
+              : msg
+          )
+        );
+        console.log('Updated messages with response:', response.response);
+      } else {
+        // If no token, replace with error message
+        console.log('No token available, showing error message');
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === thinkingMessage.id 
+              ? { ...msg, text: "Please log in to use the chatbot." } 
+              : msg
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      
+      // Replace the "thinking" message with an error message
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === messages.length + 2 
+            ? { ...msg, text: "Sorry, there was an error processing your request. Please try again." } 
+            : msg
+        )
+      )
+    } finally {
       setIsOnCooldown(false)
       setAiThinkingTimeout(null)
-    }, 1000)
-
-    setAiThinkingTimeout(timeout)
+    }
   }
 
   const handleCancel = () => {
@@ -173,6 +211,10 @@ const Chat = () => {
       // Remove the last message (user's message)
       setMessages(prev => prev.slice(0, -1))
     }
+  }
+
+  const handlePromptClick = (prompt: string) => {
+    setInputValue(prompt)
   }
 
   return (
@@ -214,12 +256,28 @@ const Chat = () => {
         >
           <div className="max-w-[95%] mx-auto">
             {!hasInteracted && (
-              <h1 
-                className="text-2xl font-semibold text-gray-800 text-center mb-6 select-none"
-              >
-                {displayText}
-                <span className="inline-block w-0.5 h-5 bg-gray-800 ml-0.5 animate-blink"></span>
-              </h1>
+              <>
+                <h1 
+                  className="text-2xl font-semibold text-gray-800 text-center mb-2 select-none"
+                >
+                  {displayText}
+                  <span className="inline-block w-0.5 h-5 bg-gray-800 ml-0.5 animate-blink"></span>
+                </h1>
+                
+                {/* Prompt Suggestions */}
+                <div className="flex flex-wrap justify-center gap-2 mb-4">
+                  {promptSuggestions.map((prompt, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handlePromptClick(prompt)}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm px-3 py-1.5 rounded-full transition-colors duration-200"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
             <div className="relative flex items-center animate-fadeIn animation-delay-300">
               <input
@@ -248,28 +306,20 @@ const Chat = () => {
               ) : (
                 <button 
                   type="submit"
-                  className={`absolute right-2 p-1.5 transition-colors duration-200 ${
-                    isOnCooldown 
-                      ? 'text-gray-300 cursor-not-allowed' 
-                      : inputValue.trim() 
-                        ? 'text-red-500 hover:text-red-600' 
-                        : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                  disabled={isOnCooldown}
+                  className="absolute right-2 p-1.5 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                   aria-label="Send message"
                 >
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
                     viewBox="0 0 24 24" 
                     fill="currentColor" 
-                    className="w-5 h-5 -rotate-80"
+                    className="w-5 h-5"
                   >
-                    <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                    <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
                   </svg>
                 </button>
               )}
-            </div>
-            
+            </div>            
             {!hasInteracted && (
               <div className="mt-4 space-y-2 animate-fadeIn animation-delay-500">
                 {promptSuggestions.map((prompt, index) => (
@@ -292,13 +342,6 @@ const Chat = () => {
             )}
           </div>
         </form>
-        {/* Removing the red bar
-        {hasInteracted && (
-          <div className="absolute bottom-0 left-0 right-0">
-            <div className="w-full h-1 bg-red-500 rounded-b-lg" />
-          </div>
-        )}
-        */}
       </div>
     </div>
   )
