@@ -237,7 +237,7 @@ def verify_code():
                     'timezone': data['timezone'],
                     'status': 'verified',
                     'created_at': datetime.now(timezone.utc),
-                    'plaid_connected': False #Remove?
+                    'plaid_connected': False, #Remove?
                     'settings': user_settings
                 }
                 
