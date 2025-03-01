@@ -48,6 +48,9 @@ const Settings = () => {
   const [entertainmentBudgetInput, setEntertainmentBudgetInput] = useState(entertainmentBudget.toString());
   const [targetBalanceInput, setTargetBalanceInput] = useState(targetBalance.toString());
   
+  // Add this new state variable for handling time input
+  const [timeInputValue, setTimeInputValue] = useState(notificationTime);
+  
   // Timezone options
   const timezoneOptions = [
     { value: 'America/New_York', label: 'Eastern Time (ET)' },
@@ -112,6 +115,9 @@ const Settings = () => {
         setEntertainmentBudget(entertainment);
         setTargetBalance(target);
         setWeeklyUpdateDay(updateDay);
+        
+        // Also initialize the timeInputValue with the time from MongoDB
+        setTimeInputValue(time);
         
         // Set input values
         setShoppingBudgetInput(shopping.toString());
@@ -183,6 +189,26 @@ const Settings = () => {
     setTargetBalanceInput(targetBalance.toString());
   }, [targetBalance]);
 
+  // Add this new handler function
+  const handleTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setTimeInputValue(newValue);
+    
+    // Only update the actual notificationTime when the input is complete
+    // This prevents validation errors while typing
+    if (newValue.match(/^\d{2}:\d{2}$/)) {
+      setNotificationTime(newValue);
+    }
+  };
+
+  // Update the useEffect that formats the display time
+  useEffect(() => {
+    // Only update display time when notification time is valid
+    if (notificationTime.match(/^\d{2}:\d{2}$/)) {
+      setDisplayTime(formatTimeWithAMPM(notificationTime));
+    }
+  }, [notificationTime]);
+
   const handleSave = async () => {
     if (!token) return;
     
@@ -253,6 +279,9 @@ const Settings = () => {
     setFoodBudgetInput(originalValues.foodBudget.toString());
     setEntertainmentBudgetInput(originalValues.entertainmentBudget.toString());
     setTargetBalanceInput(originalValues.targetBalance.toString());
+    
+    // Also reset the timeInputValue
+    setTimeInputValue(originalValues.notificationTime);
     
     setHasChanges(false);
     toast.success('Changes discarded');
@@ -399,8 +428,8 @@ const Settings = () => {
                     </div>
                     <input
                       type="time"
-                      value={notificationTime}
-                      onChange={(e) => setNotificationTime(e.target.value)}
+                      value={timeInputValue}
+                      onChange={handleTimeInputChange}
                       className="p-2 border rounded-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#d03027] focus:border-[#d03027]"
                     />
                   </div>
