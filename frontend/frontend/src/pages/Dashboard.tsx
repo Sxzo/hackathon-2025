@@ -2,17 +2,12 @@ import React, { useState } from 'react';
 import { BsCreditCard2Front } from 'react-icons/bs';
 import { FiChevronDown, FiCheck, FiEdit2 } from 'react-icons/fi';
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import PlaidTransactionTest from '../components/PlaidTransactionTest';
 import TransactionsList from '../components/TransactionsList';
+import AccountsList from '../components/AccountsList';
 
 const Dashboard = () => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedCard, setSelectedCard] = useState({
-    id: 'venture',
-    name: 'Capital One Venture',
-    icon: <BsCreditCard2Front className="text-[#004977]" />
-  });
-  
+  const [selectedChart, setSelectedChart] = useState<'portfolio' | 'bank'>('portfolio');
+
   const cards = [
     {
       id: 'venture',
@@ -57,22 +52,6 @@ const Dashboard = () => {
     { date: '2024-06', value: 5800 },
     { date: '2024-07', value: 6500 },
   ];
-
-  const [selectedChart, setSelectedChart] = useState('portfolio');
-  const [showBudgetModal, setShowBudgetModal] = useState(false);
-  const [monthlyBudget, setMonthlyBudget] = useState(4000);
-  const [currentSpending, setCurrentSpending] = useState(2850);
-  const [entertainmentBudget, setEntertainmentBudget] = useState(500);
-  const [entertainmentSpending, setEntertainmentSpending] = useState(280);
-  const [foodBudget, setFoodBudget] = useState(800);
-  const [foodSpending, setFoodSpending] = useState(600);
-  const [shoppingBudget, setShoppingBudget] = useState(600);
-  const [shoppingSpending, setShoppingSpending] = useState(450);
-
-  const handleCardSelect = (card: typeof cards[0]) => {
-    setSelectedCard(card);
-    setIsDropdownOpen(false);
-  };
 
   // Modified Portfolio/Bank Account Chart Component
   const renderPerformanceChart = () => (
@@ -141,107 +120,6 @@ const Dashboard = () => {
     </div>
   );
 
-  // New Budget Meter Component
-  const renderBudgetMeters = () => {
-    const meters = [
-      {
-        title: 'Total Monthly Budget',
-        current: currentSpending,
-        budget: monthlyBudget,
-        onClick: () => setShowBudgetModal(true)
-      },
-      {
-        title: 'Entertainment Budget',
-        current: entertainmentSpending,
-        budget: entertainmentBudget,
-        onClick: () => setShowBudgetModal(true)
-      },
-      {
-        title: 'Food Budget',
-        current: foodSpending,
-        budget: foodBudget,
-        onClick: () => setShowBudgetModal(true)
-      },
-      {
-        title: 'Shopping Budget',
-        current: shoppingSpending,
-        budget: shoppingBudget,
-        onClick: () => setShowBudgetModal(true)
-      }
-    ];
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {meters.map((meter, index) => {
-          const progress = (meter.current / meter.budget) * 100;
-          const progressColor = progress > 90 ? '#d03027' : progress > 75 ? '#f1c40f' : '#2ecc71';
-          
-          return (
-            <div key={index} className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-16 h-1 bg-[#d03027]"></div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-[#004977]">{meter.title}</h2>
-                <button
-                  onClick={meter.onClick}
-                  className="text-gray-500 hover:text-[#004977] transition-colors"
-                >
-                  <FiEdit2 className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full transition-all duration-500 rounded-full"
-                    style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: progressColor }}
-                  />
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    Spent: <span className="font-medium text-[#004977]">${meter.current.toLocaleString()}</span>
-                  </span>
-                  <span className="text-gray-600">
-                    Budget: <span className="font-medium text-[#004977]">${meter.budget.toLocaleString()}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Budget Edit Modal
-  const renderBudgetModal = () => (
-    showBudgetModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
-          <h3 className="text-xl font-semibold mb-4 text-[#004977]">Edit Monthly Budget</h3>
-          <input
-            type="number"
-            value={monthlyBudget}
-            onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-            className="w-full p-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-[#004977]"
-          />
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setShowBudgetModal(false)}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => setShowBudgetModal(false)}
-              className="px-4 py-2 bg-[#004977] text-white rounded-lg hover:bg-[#003d66] transition-colors"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  );
-
   // Modify the expenses pie chart section to include the total in the center
   const renderExpensesChart = () => {
     const totalExpenses = expensesData.reduce((sum, item) => sum + item.value, 0);
@@ -307,40 +185,12 @@ const Dashboard = () => {
           {renderExpensesChart()}
         </div>
 
-        <div className="mt-6">
-          {renderBudgetMeters()}
-        </div>
-
-        {/* Connected Accounts Section */}
-        <div className="mt-6">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-16 h-1 bg-[#d03027]"></div>
-            <h2 className="text-xl font-semibold mb-4 text-[#004977]">Connected Accounts</h2>
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg border-gray-100 hover:border-[#004977] transition-colors">
-                <div className="flex justify-between">
-                  <span className="font-medium">Checking Account</span>
-                  <span>$4,285.75</span>
-                </div>
-                <div className="text-sm text-gray-500">Capital One</div>
-              </div>
-              <div className="p-4 border rounded-lg border-gray-100 hover:border-[#004977] transition-colors">
-                <div className="flex justify-between">
-                  <span className="font-medium">Credit Card</span>
-                  <span className="text-[#d03027]">-$1,249.50</span>
-                </div>
-                <div className="text-sm text-gray-500">Capital One Venture</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <AccountsList />
 
         <TransactionsList />
-
-        {renderBudgetModal()}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard 
+export default Dashboard; 

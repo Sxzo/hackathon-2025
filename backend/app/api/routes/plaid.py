@@ -272,6 +272,56 @@ def get_account_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@plaid_bp.route('/accounts', methods=['GET'])
+@jwt_required()
+def get_accounts():
+    """Get connected bank accounts for a user."""
+    phone_number = get_jwt_identity()
+    phone_number = standardize_phone_number(phone_number)
+
+    try:
+        users_collection = get_users_collection()
+        user = users_collection.find_one({"phone_number": phone_number})
+        
+        if not user or "plaid_access_token" not in user:
+            return jsonify({'error': 'No linked bank account found'}), 404
+        
+        access_token = user["plaid_access_token"]
+        if not access_token:
+            return jsonify({'error': 'No linked bank account found'}), 404
+        
+        # Reconfigure a fresh client (sometimes necessary if headers get cached)
+        local_config = plaid.Configuration(
+            host=environment.get(PLAID_ENV, plaid.Environment.Sandbox),
+            api_key={
+                'clientId': PLAID_CLIENT_ID,
+                'secret': PLAID_SECRET,
+            }
+        )
+        local_api_client = plaid.ApiClient(local_config)
+        plaid_client = plaid_api.PlaidApi(local_api_client)
+
+        # Get accounts
+        accounts_response = plaid_client.accounts_get({
+            'access_token': access_token
+        })
+        
+        # Process the response
+        accounts = [acct.to_dict() for acct in accounts_response.accounts]
+        
+        return jsonify({
+            'accounts': accounts
+        })
+
+    except plaid.ApiException as e:
+        print(f"Plaid API Exception: {e.body}")
+        return jsonify({'error': e.body}), 400
+    except Exception as e:
+        import traceback
+        print(f"Exception in get_accounts: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
 def standardize_phone_number(phone_number: str) -> str:
     """Standardize phone number to +1 format."""
     # Remove all non-digit characters
