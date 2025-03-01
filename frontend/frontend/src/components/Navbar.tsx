@@ -3,7 +3,7 @@ import { FaMoneyCheckDollar } from "react-icons/fa6";
 import { FaMagic } from "react-icons/fa";
 import { FiLogOut, FiLogIn, FiUser, FiHome, FiPieChart, FiSettings, FiMessageSquare } from "react-icons/fi";
 import { useAuth } from '../context/AuthContext';
-
+import finnLogo from '../../public/finn_logo.png';
 const Navbar = () => {
   const { isAuthenticated, logout, firstName, lastName } = useAuth();
   const location = useLocation();
@@ -31,7 +31,12 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex-shrink-0">
-            <Link to="/" className="text-[#004977] text-xl font-bold">
+            <Link to="/" className="text-[#004977] text-xl font-bold flex items-center">
+            <img 
+                src={finnLogo} 
+                alt="Finn AI Logo" 
+                className="h-8 w-auto mr-2"
+              />
               Finn AI
             </Link>
           </div>

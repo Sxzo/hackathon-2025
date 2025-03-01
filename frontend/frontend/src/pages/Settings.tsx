@@ -166,34 +166,7 @@ const Settings = () => {
                   />
                 </div>
               </div>
-              {/* Weekly Summary Toggle */}
-              <div className="flex items-center justify-between p-4 border rounded-lg border-gray-200 hover:border-[#004977] transition-all">
-                <div>
-                  <div className="font-medium text-gray-800">Weekly Stock Summary</div>
-                  <div className="text-sm text-gray-500">Receive a summary of your weekly stock performance & news</div>
-                </div>
-                <div className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" defaultChecked />
-                  <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#d03027]"></div>
-                </div>
-              </div>
-
-              {/* Notification Time Setting */}
-              <div className="flex items-center justify-between p-4 border rounded-lg border-gray-200 hover:border-[#004977] transition-all">
-                <div>
-                  <div className="font-medium text-gray-800">Daily Notification Time</div>
-                  <div className="text-sm text-gray-500">Set your preferred notification time</div>
-                </div>
-                <div className="flex items-center space-x-6">
-                  <FiClock className="text-gray-400" />
-                  <input
-                    type="time"
-                    value={notificationTime}
-                    onChange={(e) => setNotificationTime(e.target.value)}
-                    className="p-2 border rounded-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-[#004977]"
-                  />
-                </div>
-              </div>
+            
             </div>
           </div>
         </div>

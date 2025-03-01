@@ -12,6 +12,7 @@ from plaid.model.transactions_get_request_options import TransactionsGetRequestO
 from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.database import get_users_collection
+import re
 
 plaid_bp = Blueprint('plaid', __name__)
 
@@ -73,6 +74,11 @@ def create_link_token():
 def exchange_public_token():
     """Exchange a public token for an access token and item ID."""
     phone_number = get_jwt_identity()
+
+    # Validate phone number format
+    if not phone_number.startswith('+'):
+        # Remove all non-digit characters using Python's re module
+        phone_number = '+1' + re.sub(r'\D', '', phone_number)
     data = request.get_json()
     
     if not data or 'public_token' not in data:
