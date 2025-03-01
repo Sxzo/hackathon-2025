@@ -18,6 +18,15 @@ const Settings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [displayTime, setDisplayTime] = useState('');
   
+  // Add budget state variables
+  const [shoppingBudget, setShoppingBudget] = useState(300);
+  const [foodBudget, setFoodBudget] = useState(500);
+  const [entertainmentBudget, setEntertainmentBudget] = useState(200);
+  const [targetBalance, setTargetBalance] = useState(5000);
+  
+  // Add this to your state variables
+  const [weeklyUpdateDay, setWeeklyUpdateDay] = useState('Sunday');
+  
   // Store original values for reverting changes
   const [originalValues, setOriginalValues] = useState({
     notificationTime: '09:00',
@@ -25,8 +34,22 @@ const Settings = () => {
     temperature: 0.7,
     timezone: 'America/New_York',
     weeklyNotifications: true,
-    displayTime: ''
+    displayTime: '',
+    shoppingBudget: 300,
+    foodBudget: 500,
+    entertainmentBudget: 200,
+    targetBalance: 5000,
+    weeklyUpdateDay: 'Sunday'
   });
+  
+  // Add these new state variables for handling input values
+  const [shoppingBudgetInput, setShoppingBudgetInput] = useState(shoppingBudget.toString());
+  const [foodBudgetInput, setFoodBudgetInput] = useState(foodBudget.toString());
+  const [entertainmentBudgetInput, setEntertainmentBudgetInput] = useState(entertainmentBudget.toString());
+  const [targetBalanceInput, setTargetBalanceInput] = useState(targetBalance.toString());
+  
+  // Add this new state variable for handling time input
+  const [timeInputValue, setTimeInputValue] = useState(notificationTime);
   
   // Timezone options
   const timezoneOptions = [
@@ -60,6 +83,7 @@ const Settings = () => {
         const response = await getUserSettings(token);
         console.log('Settings response:', response);
         const settings = response.settings;
+        const budgets = response.budgets || {};
         
         // Map backend settings to frontend state with defaults if values are missing
         const time = settings.notification_time || '09:00';
@@ -68,6 +92,13 @@ const Settings = () => {
         const tz = settings.timezone || 'America/New_York';
         const weeklySummary = settings.financial_weekly_summary !== undefined ? 
           settings.financial_weekly_summary : true;
+        const updateDay = settings.financial_weekly_update_day || 'Sunday';
+        
+        // Get budget settings with defaults
+        const shopping = budgets.shopping || 300;
+        const food = budgets.food || 500;
+        const entertainment = budgets.entertainment || 200;
+        const target = budgets.target_balance || 5000;
         
         // Format time for display
         const formattedDisplayTime = formatTimeWithAMPM(time);
@@ -79,6 +110,20 @@ const Settings = () => {
         setTimezone(tz);
         setWeeklyNotifications(weeklySummary);
         setDisplayTime(formattedDisplayTime);
+        setShoppingBudget(shopping);
+        setFoodBudget(food);
+        setEntertainmentBudget(entertainment);
+        setTargetBalance(target);
+        setWeeklyUpdateDay(updateDay);
+        
+        // Also initialize the timeInputValue with the time from MongoDB
+        setTimeInputValue(time);
+        
+        // Set input values
+        setShoppingBudgetInput(shopping.toString());
+        setFoodBudgetInput(food.toString());
+        setEntertainmentBudgetInput(entertainment.toString());
+        setTargetBalanceInput(target.toString());
         
         // Store original values
         setOriginalValues({
@@ -87,33 +132,82 @@ const Settings = () => {
           temperature: temp,
           timezone: tz,
           weeklyNotifications: weeklySummary,
-          displayTime: formattedDisplayTime
+          displayTime: formattedDisplayTime,
+          shoppingBudget: shopping,
+          foodBudget: food,
+          entertainmentBudget: entertainment,
+          targetBalance: target,
+          weeklyUpdateDay: updateDay
         });
       } catch (error) {
-        console.error('Failed to fetch settings:', error);
-        toast.error('Failed to load settings. Please try again.');
+        console.error('Error fetching settings:', error);
+        toast.error('Failed to load settings');
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     fetchSettings();
   }, [token]);
 
   useEffect(() => {
-    const changed = 
+    const changes = 
       notificationTime !== originalValues.notificationTime ||
       selectedModel !== originalValues.selectedModel ||
       temperature !== originalValues.temperature ||
       timezone !== originalValues.timezone ||
-      weeklyNotifications !== originalValues.weeklyNotifications;
-    setHasChanges(changed);
+      weeklyNotifications !== originalValues.weeklyNotifications ||
+      shoppingBudget !== originalValues.shoppingBudget ||
+      foodBudget !== originalValues.foodBudget ||
+      entertainmentBudget !== originalValues.entertainmentBudget ||
+      targetBalance !== originalValues.targetBalance ||
+      weeklyUpdateDay !== originalValues.weeklyUpdateDay;
+    
+    setHasChanges(changes);
     
     // Update display time whenever notification time changes
     if (notificationTime !== originalValues.notificationTime) {
       setDisplayTime(formatTimeWithAMPM(notificationTime));
     }
-  }, [notificationTime, selectedModel, temperature, timezone, weeklyNotifications, originalValues]);
+  }, [notificationTime, selectedModel, temperature, timezone, weeklyNotifications, 
+      shoppingBudget, foodBudget, entertainmentBudget, targetBalance, originalValues, weeklyUpdateDay]);
+
+  // Update these useEffect hooks to sync the input values when the actual values change
+  useEffect(() => {
+    setShoppingBudgetInput(shoppingBudget.toString());
+  }, [shoppingBudget]);
+
+  useEffect(() => {
+    setFoodBudgetInput(foodBudget.toString());
+  }, [foodBudget]);
+
+  useEffect(() => {
+    setEntertainmentBudgetInput(entertainmentBudget.toString());
+  }, [entertainmentBudget]);
+
+  useEffect(() => {
+    setTargetBalanceInput(targetBalance.toString());
+  }, [targetBalance]);
+
+  // Add this new handler function
+  const handleTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setTimeInputValue(newValue);
+    
+    // Only update the actual notificationTime when the input is complete
+    // This prevents validation errors while typing
+    if (newValue.match(/^\d{2}:\d{2}$/)) {
+      setNotificationTime(newValue);
+    }
+  };
+
+  // Update the useEffect that formats the display time
+  useEffect(() => {
+    // Only update display time when notification time is valid
+    if (notificationTime.match(/^\d{2}:\d{2}$/)) {
+      setDisplayTime(formatTimeWithAMPM(notificationTime));
+    }
+  }, [notificationTime]);
 
   const handleSave = async () => {
     if (!token) return;
@@ -121,39 +215,47 @@ const Settings = () => {
     try {
       setIsSaving(true);
       
-      // Format time to ensure it's in HH:MM format
-      const formattedTime = notificationTime.length === 5 ? 
-        notificationTime : // Already in HH:MM
-        notificationTime.padStart(5, '0'); // Ensure proper formatting
-      
-      // Map frontend state to backend settings format
-      const settingsToUpdate = {
-        notification_time: formattedTime,
+      // Prepare data for API
+      const data = {
+        notification_time: notificationTime,
         model: selectedModel,
         temperature: temperature,
         timezone: timezone,
         financial_weekly_summary: weeklyNotifications,
-        financial_weekly_summary_time: formattedTime // Using same time for weekly summary
+        financial_weekly_update_day: weeklyUpdateDay,
+        // Include budget settings
+        shopping: shoppingBudget,
+        food: foodBudget,
+        entertainment: entertainmentBudget,
+        target_balance: targetBalance
       };
       
-      console.log('Saving settings:', settingsToUpdate);
-      await updateUserSettings(token, settingsToUpdate);
+      console.log('Saving settings:', data);
+      const response = await updateUserSettings(token, data);
+      console.log('Settings update response:', response);
       
-      // Update original values after successful save
+      // Update original values to match current values
       setOriginalValues({
-        notificationTime: formattedTime,
+        notificationTime,
         selectedModel,
         temperature,
         timezone,
         weeklyNotifications,
-        displayTime: formatTimeWithAMPM(formattedTime)
+        displayTime,
+        shoppingBudget,
+        foodBudget,
+        entertainmentBudget,
+        targetBalance,
+        weeklyUpdateDay
       });
       
+      // Reset hasChanges flag
       setHasChanges(false);
+      
       toast.success('Settings saved successfully');
     } catch (error) {
-      console.error('Failed to save settings:', error);
-      toast.error('Failed to save settings. Please try again.');
+      console.error('Error saving settings:', error);
+      toast.error('Failed to save settings');
     } finally {
       setIsSaving(false);
     }
@@ -165,12 +267,65 @@ const Settings = () => {
     setTemperature(originalValues.temperature);
     setTimezone(originalValues.timezone);
     setWeeklyNotifications(originalValues.weeklyNotifications);
+    setDisplayTime(originalValues.displayTime);
+    setShoppingBudget(originalValues.shoppingBudget);
+    setFoodBudget(originalValues.foodBudget);
+    setEntertainmentBudget(originalValues.entertainmentBudget);
+    setTargetBalance(originalValues.targetBalance);
+    setWeeklyUpdateDay(originalValues.weeklyUpdateDay);
+    
+    // Reset input values
+    setShoppingBudgetInput(originalValues.shoppingBudget.toString());
+    setFoodBudgetInput(originalValues.foodBudget.toString());
+    setEntertainmentBudgetInput(originalValues.entertainmentBudget.toString());
+    setTargetBalanceInput(originalValues.targetBalance.toString());
+    
+    // Also reset the timeInputValue
+    setTimeInputValue(originalValues.notificationTime);
+    
     setHasChanges(false);
+    toast.success('Changes discarded');
   };
 
   const handleWeeklyNotificationsToggle = () => {
     setWeeklyNotifications(!weeklyNotifications);
   };
+
+  // Add these handler functions
+  const handleShoppingBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setShoppingBudgetInput(value);
+    setShoppingBudget(value === '' ? 0 : Number(value));
+  };
+
+  const handleFoodBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFoodBudgetInput(value);
+    setFoodBudget(value === '' ? 0 : Number(value));
+  };
+
+  const handleEntertainmentBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEntertainmentBudgetInput(value);
+    setEntertainmentBudget(value === '' ? 0 : Number(value));
+  };
+
+  const handleTargetBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTargetBalanceInput(value);
+    setTargetBalance(value === '' ? 0 : Number(value));
+  };
+
+  // Create day options for the dropdown
+  const dayOptions = [
+    { value: 'Monday', label: 'Monday' },
+    { value: 'Tuesday', label: 'Tuesday' },
+    { value: 'Wednesday', label: 'Wednesday' },
+    { value: 'Thursday', label: 'Thursday' },
+    { value: 'Friday', label: 'Friday' },
+    { value: 'Saturday', label: 'Saturday' },
+    { value: 'Sunday', label: 'Sunday' }
+  ];
 
   if (isLoading) {
     return (
@@ -186,126 +341,254 @@ const Settings = () => {
       <div className="container mx-auto p-4">
         <h1 className="text-3xl font-bold mb-8 text-[#004977]">Settings</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* User Information Card */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center space-x-3 mb-6">
-              <FiUser className="text-2xl text-[#004977]" />
-              <h2 className="text-xl font-semibold text-[#004977]">Account Information</h2>
+        {/* General Settings Section */}
+        <div className="mb-10">
+          <h2 className="text-2xl font-semibold mb-6 text-[#004977] border-b pb-2">General Settings</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* User Information Card */}
+            <div className="lg:col-span-3 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center space-x-3 mb-6">
+                <FiUser className="text-2xl text-[#004977]" />
+                <h2 className="text-xl font-semibold text-[#004977]">Account Information</h2>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <div className="p-2 bg-gray-50 rounded-md text-gray-700">{firstName}</div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <div className="p-2 bg-gray-50 rounded-md text-gray-700">{lastName}</div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
+                  <div className="p-2 bg-gray-50 rounded-md text-gray-700">May 15, 2023</div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Time Zone</label>
+                  <CustomDropdown
+                    options={timezoneOptions}
+                    value={timezone}
+                    onChange={setTimezone}
+                    className="bg-white"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                <div className="p-2 bg-gray-50 rounded-md text-gray-700">{firstName}</div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                <div className="p-2 bg-gray-50 rounded-md text-gray-700">{lastName}</div>
+            {/* Notifications Card */}
+            <div className="lg:col-span-1 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center space-x-3 mb-6">
+                <FiBell className="text-2xl text-[#004977]" />
+                <h2 className="text-xl font-semibold text-[#004977]">Notifications</h2>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Account Created</label>
-                <div className="p-2 bg-gray-50 rounded-md text-gray-700">May 15, 2023</div>
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-800">Weekly Summary</div>
+                      <div className="text-sm text-gray-500">Receive weekly financial updates</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={weeklyNotifications}
+                        onChange={handleWeeklyNotificationsToggle}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-[#d03027] after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {weeklyNotifications && (
+                  <div className="p-4 border rounded-lg border-gray-200">
+                    <div>
+                      <div className="font-medium text-gray-800 mb-2">Weekly Update Day</div>
+                      <CustomDropdown
+                        options={dayOptions}
+                        value={weeklyUpdateDay}
+                        onChange={setWeeklyUpdateDay}
+                        className="bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-4 border rounded-lg border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-800">Daily Updates</div>
+                      <div className="text-sm text-gray-500">Set notification time</div>
+                    </div>
+                    <input
+                      type="time"
+                      value={timeInputValue}
+                      onChange={handleTimeInputChange}
+                      className="p-2 border rounded-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#d03027] focus:border-[#d03027]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Settings Card */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center space-x-3 mb-6">
+                <FiSliders className="text-2xl text-[#004977]" />
+                <h2 className="text-xl font-semibold text-[#004977]">AI Settings</h2>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Time Zone</label>
+              <div className="space-y-6">
                 <CustomDropdown
-                  options={timezoneOptions}
-                  value={timezone}
-                  onChange={setTimezone}
+                  label="AI Model"
+                  options={[
+                    { value: 'gpt-4', label: 'GPT 4' },
+                    { value: 'gpt-4o-mini', label: 'GPT 4o mini' },
+                    { value: 'gpt-4o', label: 'GPT 4o' },
+                    { value: 'gpt-3.5-turbo', label: 'GPT 3.5 turbo' }
+                  ]}
+                  value={selectedModel}
+                  onChange={setSelectedModel}
                   className="bg-white"
                 />
-              </div>
-            </div>
-          </div>
 
-          {/* Bank Account Status */}
-          <div className="lg:col-span-1">
-            <BankAccountStatus />
-          </div>
-
-          {/* AI Settings Card */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center space-x-3 mb-6">
-              <FiSliders className="text-2xl text-[#004977]" />
-              <h2 className="text-xl font-semibold text-[#004977]">AI Settings</h2>
-            </div>
-
-            <div className="space-y-6">
-              <CustomDropdown
-                label="AI Model"
-                options={[
-                  { value: 'gpt-4', label: 'GPT 4' },
-                  { value: 'gpt-4o-mini', label: 'GPT 4o mini' },
-                  { value: 'gpt-4o', label: 'GPT 4o' },
-                  { value: 'gpt-3.5-turbo', label: 'GPT 3.5 turbo' }
-                ]}
-                value={selectedModel}
-                onChange={setSelectedModel}
-                className="bg-white"
-              />
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Temperature</label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={temperature}
-                  onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#004977]"
-                />
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Precise</span>
-                  <span>{temperature}</span>
-                  <span>Creative</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Notifications Card */}
-          <div className="lg:col-span-1 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center space-x-3 mb-6">
-              <FiBell className="text-2xl text-[#004977]" />
-              <h2 className="text-xl font-semibold text-[#004977]">Notifications</h2>
-            </div>
-
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-800">Weekly Summary</div>
-                    <div className="text-sm text-gray-500">Receive weekly financial updates</div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={weeklyNotifications}
-                      onChange={handleWeeklyNotificationsToggle}
-                      className="sr-only peer" 
-                    />
-                    <div className="w-11 h-6 bg-gray-200 rounded-full peer-checked:bg-[#d03027] after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-                  </label>
-                </div>
-              </div>
-
-              <div className="p-4 border rounded-lg border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-800">Daily Updates</div>
-                    <div className="text-sm text-gray-500">Set notification time</div>
-                  </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Temperature</label>
                   <input
-                    type="time"
-                    value={notificationTime}
-                    onChange={(e) => setNotificationTime(e.target.value)}
-                    className="p-2 border rounded-md border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004977] focus:border-[#004977]"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={temperature}
+                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#d03027]"
                   />
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>Precise</span>
+                    <span>{temperature}</span>
+                    <span>Creative</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Finance Settings Section */}
+        <div>
+          <h2 className="text-2xl font-semibold mb-6 text-[#004977] border-b pb-2">Finance Settings</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Bank Account Status */}
+            <div className="lg:col-span-3">
+              <BankAccountStatus />
+            </div>
+            {/* Budget Settings Card */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center space-x-3 mb-6">
+                <FiCreditCard className="text-2xl text-[#004977]" />
+                <h2 className="text-xl font-semibold text-[#004977]">Budget Settings</h2>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Shopping Budget */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Shopping Budget</label>
+                    <div className="relative mt-1 rounded-md shadow-sm">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <span className="text-gray-500 sm:text-sm">$</span>
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={shoppingBudgetInput}
+                        onChange={handleShoppingBudgetChange}
+                        className="block w-full rounded-md border-gray-300 pl-7 pr-12 focus:border-[#d03027] focus:ring-[#d03027] focus:ring-opacity-50 focus:outline-none sm:text-sm"
+                        placeholder="0.00"
+                      />
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <span className="text-gray-500 sm:text-sm">/month</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Food Budget */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Food Budget</label>
+                    <div className="relative mt-1 rounded-md shadow-sm">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <span className="text-gray-500 sm:text-sm">$</span>
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={foodBudgetInput}
+                        onChange={handleFoodBudgetChange}
+                        className="block w-full rounded-md border-gray-300 pl-7 pr-12 focus:border-[#d03027] focus:ring-[#d03027] focus:ring-opacity-50 focus:outline-none sm:text-sm"
+                        placeholder="0.00"
+                      />
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <span className="text-gray-500 sm:text-sm">/month</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Entertainment Budget */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Entertainment Budget</label>
+                    <div className="relative mt-1 rounded-md shadow-sm">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <span className="text-gray-500 sm:text-sm">$</span>
+                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={entertainmentBudgetInput}
+                        onChange={handleEntertainmentBudgetChange}
+                        className="block w-full rounded-md border-gray-300 pl-7 pr-12 focus:border-[#d03027] focus:ring-[#d03027] focus:ring-opacity-50 focus:outline-none sm:text-sm"
+                        placeholder="0.00"
+                      />
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <span className="text-gray-500 sm:text-sm">/month</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Target Balance Card */}
+            <div className="lg:col-span-1 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center space-x-3 mb-6">
+                <FiClock className="text-2xl text-[#004977]" />
+                <h2 className="text-xl font-semibold text-[#004977]">Savings Goal</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Target Bank Balance</label>
+                  <div className="relative mt-1 rounded-md shadow-sm">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <span className="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={targetBalanceInput}
+                      onChange={handleTargetBalanceChange}
+                      className="block w-full rounded-md border-gray-300 pl-7 focus:border-[#d03027] focus:ring-[#d03027] focus:ring-opacity-50 focus:outline-none sm:text-sm"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    We'll help you track progress toward this goal
+                  </p>
                 </div>
               </div>
             </div>
