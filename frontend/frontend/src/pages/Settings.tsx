@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 const Settings = () => {
   const { firstName, lastName, token } = useAuth();
   const [notificationTime, setNotificationTime] = useState('09:00');
-  const [selectedModel, setSelectedModel] = useState('gpt4');
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
   const [temperature, setTemperature] = useState(0.7);
   const [timezone, setTimezone] = useState('America/New_York');
   const [weeklyNotifications, setWeeklyNotifications] = useState(true);
@@ -86,7 +86,8 @@ const Settings = () => {
         const budgets = response.budgets || {};
         
         // Map backend settings to frontend state with defaults if values are missing
-        const time = settings.notification_time || '09:00';
+        // Use financial_weekly_summary_time if available, otherwise fall back to notification_time
+        const time = settings.financial_weekly_summary_time || settings.notification_time || '09:00';
         const model = settings.model || 'gpt4';
         const temp = settings.temperature || 0.7;
         const tz = settings.timezone || 'America/New_York';
@@ -218,6 +219,7 @@ const Settings = () => {
       // Prepare data for API
       const data = {
         notification_time: notificationTime,
+        financial_weekly_summary_time: notificationTime,
         model: selectedModel,
         temperature: temperature,
         timezone: timezone,
