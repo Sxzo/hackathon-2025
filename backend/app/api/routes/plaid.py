@@ -79,6 +79,7 @@ def exchange_public_token():
     if not phone_number.startswith('+'):
         # Remove all non-digit characters using Python's re module
         phone_number = '+1' + re.sub(r'\D', '', phone_number)
+
     data = request.get_json()
     
     if not data or 'public_token' not in data:
@@ -121,7 +122,7 @@ def exchange_public_token():
 def get_transactions():
     """Get transactions for a user."""
     phone_number = get_jwt_identity()
-    
+    phone_number = standardize_phone_number(phone_number)
     # Get access token from query parameter
     # access_token = request.args.get('access_token')
     
@@ -177,6 +178,9 @@ def signup_transactions():
     phone_number = data['phone_number']
     
     try:
+        # Standardize phone number format
+        phone_number = standardize_phone_number(phone_number)
+        
         # Exchange public token for access token
         exchange_request = ItemPublicTokenExchangeRequest(
             public_token=public_token
@@ -238,6 +242,7 @@ def signup_transactions():
 def get_account_status():
     """Check if the user has a linked bank account."""
     phone_number = get_jwt_identity()
+    phone_number = standardize_phone_number(phone_number)
     
     try:
         # Check if the user has a stored access token
@@ -254,4 +259,14 @@ def get_account_status():
                 'plaid_connected': False
             })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500
+
+def standardize_phone_number(phone_number: str) -> str:
+    """Standardize phone number to +1 format."""
+    # Remove all non-digit characters
+    digits = ''.join(filter(str.isdigit, phone_number))
+    
+    # If number starts with 1, add +, otherwise add +1
+    if digits.startswith('1'):
+        return f'+{digits}'
+    return f'+1{digits}' 
