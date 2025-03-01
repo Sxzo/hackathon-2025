@@ -123,6 +123,18 @@ def get_transactions():
     """Get transactions for a user."""
     phone_number = get_jwt_identity()
     phone_number = standardize_phone_number(phone_number)
+    
+    # Get date range from query parameters (default to 30 days)
+    days_back = request.args.get('days', '30')
+    try:
+        days_back = int(days_back)
+        # Limit to reasonable values
+        if days_back < 1:
+            days_back = 30
+        elif days_back > 365:
+            days_back = 365
+    except ValueError:
+        days_back = 30
 
     try:
         users_collection = get_users_collection()
@@ -135,9 +147,9 @@ def get_transactions():
         if not access_token:
             return jsonify({'error': 'No linked bank account found'}), 404
         
-        # Date range: last 30 days
+        # Date range based on requested days
         end_date = datetime.now().date()
-        start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=days_back)
 
         # Reconfigure a fresh client (sometimes necessary if headers get cached)
         local_config = plaid.Configuration(
@@ -165,7 +177,12 @@ def get_transactions():
         
         return jsonify({
             'transactions': transactions,
-            'accounts': accounts
+            'accounts': accounts,
+            'date_range': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'days': days_back
+            }
         })
 
     except plaid.ApiException as e:

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { FiRefreshCw } from 'react-icons/fi';
 import exampleTransactions from '../assets/example_transactions.json';
+import DateRangeSelector from './DateRangeSelector';
 
 interface Transaction {
   transaction_id?: string;
@@ -16,13 +17,14 @@ const TransactionsList: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [daysBack, setDaysBack] = useState<number>(30);
   const { token } = useAuth();
   
   const BASE_URL = 'http://localhost:5001';
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [daysBack]);
 
   const fetchTransactions = async () => {
     if (!token) {
@@ -34,7 +36,7 @@ const TransactionsList: React.FC = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${BASE_URL}/api/plaid/transactions`, {
+      const response = await fetch(`${BASE_URL}/api/plaid/transactions?days=${daysBack}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -48,7 +50,7 @@ const TransactionsList: React.FC = () => {
       }
       
       const data = await response.json();
-      console.log(data)
+      console.log(data);
       if (data.transactions && data.transactions.length > 0) {
         // Format transactions from Plaid API
         const formattedTransactions = data.transactions.map((tx: any) => ({
@@ -69,7 +71,7 @@ const TransactionsList: React.FC = () => {
         // If no transactions, use example data
         setTransactions(exampleTransactions);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching transactions:', err);
       setError(err instanceof Error ? err.message : 'Failed to load transactions');
       // Fall back to example data
@@ -140,14 +142,20 @@ const TransactionsList: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mt-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-[#004977]">Recent Transactions</h2>
-        <button 
-          onClick={fetchTransactions}
-          disabled={isLoading}
-          className="text-gray-500 hover:text-[#004977] p-2 rounded-full"
-          title="Refresh transactions"
-        >
-          <FiRefreshCw className={isLoading ? 'animate-spin' : ''} size={18} />
-        </button>
+        <div className="flex items-center gap-3">
+          <DateRangeSelector 
+            selectedDays={daysBack} 
+            onRangeChange={(days) => setDaysBack(days)} 
+          />
+          <button 
+            onClick={fetchTransactions}
+            disabled={isLoading}
+            className="text-gray-500 hover:text-[#004977] p-2 rounded-full"
+            title="Refresh transactions"
+          >
+            <FiRefreshCw className={isLoading ? 'animate-spin' : ''} size={18} />
+          </button>
+        </div>
       </div>
       
       {error && (
