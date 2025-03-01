@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from functools import wraps
 import re
 from app.database import get_users_collection
+from pymongo.collection import Collection
+import jwt
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -19,6 +21,24 @@ IS_DEVELOPMENT = False
 # In-memory blocklist for revoked tokens
 # In a production environment, this should be stored in Redis or a database
 jwt_blocklist = set()
+
+# Mock verification functions for development mode
+def mock_send_verification(phone_number):
+    """Mock function to simulate sending a verification code in development mode."""
+    print(f"MOCK: Sending verification code to {phone_number}")
+    return {
+        'status': 'pending',
+        'to': phone_number
+    }
+
+def mock_check_verification(phone_number, code):
+    """Mock function to simulate checking a verification code in development mode."""
+    print(f"MOCK: Checking verification code {code} for {phone_number}")
+    # In development mode, any code is valid
+    return {
+        'status': 'approved',
+        'to': phone_number
+    }
 
 # Twilio credentials should be stored in environment variables
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
@@ -41,6 +61,10 @@ def generate_jwt_token(phone_number):
         'refresh_token': refresh_token,
         'token_type': 'Bearer'
     }
+
+def get_users_collection_safely():
+    """Get the users collection with error handling."""
+    return get_users_collection()
 
 @auth_bp.route('/send-verification', methods=['POST'])
 def send_verification():
@@ -67,11 +91,6 @@ def send_verification():
         
         # Check if user exists
         print("Checking if user exists")
-        
-        # Check if MongoDB is properly configured
-        if not MONGO_URI:
-            print("WARNING: MONGO_URI is not set")
-            return jsonify({'error': 'Database configuration error'}), 500
             
         # Check if Twilio is properly configured
         if not twilio_client and not IS_DEVELOPMENT:
@@ -83,7 +102,8 @@ def send_verification():
             return jsonify({'error': 'Twilio service SID not configured'}), 500
         
         try:
-            existing_user = get_users_collection().find_one({'phone_number': phone_number})
+            users_collection = get_users_collection_safely()
+            existing_user = users_collection.find_one({'phone_number': phone_number})
             print(f"Existing user: {existing_user}")
         except Exception as db_error:
             print(f"Database error: {str(db_error)}")
@@ -151,11 +171,6 @@ def verify_code():
     is_signup = 'first_name' in data and 'last_name' in data
     
     try:
-        # Check if MongoDB is properly configured
-        if not MONGO_URI:
-            print("WARNING: MONGO_URI is not set")
-            return jsonify({'error': 'Database configuration error'}), 500
-            
         # Check if Twilio is properly configured
         if not twilio_client and not IS_DEVELOPMENT:
             print("WARNING: Twilio client is not initialized")
@@ -168,7 +183,8 @@ def verify_code():
         # Check if user exists for signup
         if is_signup:
             try:
-                existing_user = get_users_collection().find_one({'phone_number': phone_number})
+                users_collection = get_users_collection_safely()
+                existing_user = users_collection.find_one({'phone_number': phone_number})
                 if existing_user:
                     return jsonify({'error': 'A user with this phone number already exists'}), 400
             except Exception as db_error:
@@ -208,7 +224,8 @@ def verify_code():
                 }
                 
                 try:
-                    get_users_collection().insert_one(new_user)
+                    users_collection = get_users_collection_safely()
+                    users_collection.insert_one(new_user)
                     user_data = new_user
                 except Exception as db_error:
                     print(f"Database error during user creation: {str(db_error)}")
@@ -216,7 +233,8 @@ def verify_code():
             else:
                 # Get existing user data
                 try:
-                    user_data = get_users_collection().find_one({'phone_number': phone_number})
+                    users_collection = get_users_collection_safely()
+                    user_data = users_collection.find_one({'phone_number': phone_number})
                     if not user_data:
                         return jsonify({'error': 'User not found after verification'}), 404
                 except Exception as db_error:
@@ -320,11 +338,6 @@ def signup():
     print(f"Formatted phone number for signup: {phone_number}")
     
     try:
-        # Check if MongoDB is properly configured
-        if not MONGO_URI:
-            print("WARNING: MONGO_URI is not set")
-            return jsonify({'error': 'Database configuration error'}), 500
-            
         # Check if Twilio is properly configured
         if not twilio_client and not IS_DEVELOPMENT:
             print("WARNING: Twilio client is not initialized")
@@ -336,7 +349,8 @@ def signup():
         
         # Check if user already exists
         try:
-            existing_user = get_users_collection().find_one({'phone_number': phone_number})
+            users_collection = get_users_collection_safely()
+            existing_user = users_collection.find_one({'phone_number': phone_number})
             if existing_user:
                 print(f"User with phone {phone_number} already exists")
                 return jsonify({'error': 'A user with this phone number already exists'}), 400
@@ -374,4 +388,75 @@ def signup():
     
     except Exception as e:
         print(f"Unexpected error during signup: {str(e)}")
-        return jsonify({'error': f'Failed to send verification: {str(e)}'}), 500 
+        return jsonify({'error': f'Failed to send verification: {str(e)}'}), 500
+
+@auth_bp.route('/refresh-token', methods=['POST'])
+def refresh_token():
+    """Refresh the JWT token."""
+    data = request.get_json()
+    
+    if not data or 'refresh_token' not in data:
+        return jsonify({'error': 'Refresh token is required'}), 400
+    
+    refresh_token = data['refresh_token']
+    
+    try:
+        # Verify the refresh token
+        payload = jwt.decode(refresh_token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        phone_number = payload['sub']
+        
+        # Check if user exists
+        try:
+            users_collection = get_users_collection_safely()
+            user = users_collection.find_one({'phone_number': phone_number})
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+        except Exception as db_error:
+            print(f"Database error: {str(db_error)}")
+            return jsonify({'error': f'Database error: {str(db_error)}'}), 500
+        
+        # Generate new tokens
+        tokens = generate_jwt_token(phone_number)
+        
+        return jsonify({
+            'message': 'Token refreshed successfully',
+            'tokens': tokens
+        })
+    
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Refresh token has expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid refresh token'}), 401
+    except Exception as e:
+        return jsonify({'error': f'Failed to refresh token: {str(e)}'}), 500
+
+@auth_bp.route('/user-info', methods=['GET'])
+@jwt_required()
+def get_user_info():
+    """Get the user's information."""
+    phone_number = get_jwt_identity()
+    
+    try:
+        # Get user data
+        try:
+            users_collection = get_users_collection_safely()
+            user = users_collection.find_one({'phone_number': phone_number})
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+        except Exception as db_error:
+            print(f"Database error: {str(db_error)}")
+            return jsonify({'error': f'Database error: {str(db_error)}'}), 500
+        
+        # Convert ObjectId to string for JSON serialization
+        user['_id'] = str(user['_id'])
+        
+        # Remove sensitive data
+        if 'password' in user:
+            del user['password']
+        
+        return jsonify({
+            'user': user
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f'Failed to get user info: {str(e)}'}), 500 

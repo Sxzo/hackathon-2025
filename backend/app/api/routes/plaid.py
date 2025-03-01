@@ -11,7 +11,6 @@ from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
 from datetime import datetime, timedelta
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.database import get_users_collection
 
 plaid_bp = Blueprint('plaid', __name__)
 
@@ -88,33 +87,10 @@ def exchange_public_token():
         
         access_token = exchange_response['access_token']
         item_id = exchange_response['item_id']
-        
-        # Update user record to mark Plaid as connected
-        try:
-            users_collection = get_users_collection()
-            
-            current_app.logger.info(f"Updating Plaid connection for user {phone_number}")
-            # Update the user record
-            result = users_collection.update_one(
-                {'phone_number': phone_number},
-                {'$set': {
-                    'plaid_connected': True,
-                    'plaid_item_id': item_id,
-                    'plaid_access_token': access_token,
-                    'plaid_connected_at': datetime.now()
-                }}
-            )
-            
-            if result.modified_count == 0:
-                current_app.logger.warning(f"Failed to update plaid connection status for user {phone_number}")
-        except Exception as db_error:
-            current_app.logger.error(f"Database error updating plaid connection: {str(db_error)}")
-            raise
-        
+        print(access_token)
         # In a production app, you would store these tokens in a database
         # associated with the user's account
         # For this example, we'll just return them
-        # You should NEVER return the access_token to the client in production
         
         return jsonify({
             'access_token': access_token,
@@ -122,11 +98,10 @@ def exchange_public_token():
             'message': 'Public token exchanged successfully',
             'plaid_connected': True
         })
-    
     except plaid.ApiException as e:
-        return jsonify({'error': e.body}), 500
+        error_response = e.body
+        return jsonify({'error': error_response}), 400
     except Exception as e:
-        current_app.logger.error(f"Error in exchange_public_token: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @plaid_bp.route('/transactions', methods=['GET'])
@@ -135,8 +110,7 @@ def get_transactions():
     """Get transactions for a user."""
     phone_number = get_jwt_identity()
     
-    # In a production app, you would retrieve the access_token from your database
-    # based on the user's identity
+    # Get access token from query parameter
     access_token = request.args.get('access_token')
     
     if not access_token:
@@ -148,7 +122,7 @@ def get_transactions():
         start_date = end_date - timedelta(days=30)
         
         # Create request for transactions
-        request = TransactionsGetRequest(
+        transactions_request = TransactionsGetRequest(
             access_token=access_token,
             start_date=start_date,
             end_date=end_date,
@@ -158,20 +132,20 @@ def get_transactions():
             )
         )
         
-        response = client.transactions_get(request)
-        transactions = response['transactions']
+        transactions_response = client.transactions_get(transactions_request)
+        transactions = transactions_response['transactions']
+        accounts = transactions_response['accounts']
         
         return jsonify({
-            'transactions': [transaction.to_dict() for transaction in transactions],
-            'accounts': [account.to_dict() for account in response['accounts']]
+            'transactions': transactions,
+            'accounts': accounts
         })
-    
     except plaid.ApiException as e:
-        return jsonify({'error': e.body}), 500
+        error_response = e.body
+        return jsonify({'error': error_response}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Route to get transactions during signup
 @plaid_bp.route('/signup-transactions', methods=['POST'])
 def signup_transactions():
     """Get transactions during the signup process."""
@@ -192,7 +166,7 @@ def signup_transactions():
         
         access_token = exchange_response['access_token']
         item_id = exchange_response['item_id']
-        
+        print(access_token)
         # Set date range for transactions (last 30 days)
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=30)
@@ -212,37 +186,16 @@ def signup_transactions():
         transactions = transactions_response['transactions']
         accounts = transactions_response['accounts']
         
-        # Update user record to mark Plaid as connected
-        try:
-            users_collection = get_users_collection()
-            
-            current_app.logger.info(f"Updating Plaid connection for user {phone_number} during signup")
-            # Update the user record
-            result = users_collection.update_one(
-                {'phone_number': phone_number},
-                {'$set': {
-                    'plaid_connected': True,
-                    'plaid_item_id': item_id,
-                    'plaid_access_token': access_token,
-                    'plaid_connected_at': datetime.now()
-                }}
-            )
-            
-            if result.modified_count == 0:
-                current_app.logger.warning(f"Failed to update plaid connection status for user {phone_number}")
-        except Exception as db_error:
-            current_app.logger.error(f"Database error updating plaid connection: {str(db_error)}")
-            raise
-                
         return jsonify({
+            'access_token': access_token,
+            'item_id': item_id,
+            'transactions': transactions,
+            'accounts': accounts,
             'message': 'Bank account linked successfully',
-            'transactions': [transaction.to_dict() for transaction in transactions],
-            'accounts': [account.to_dict() for account in accounts],
             'plaid_connected': True
         })
-    
     except plaid.ApiException as e:
-        return jsonify({'error': e.body}), 500
+        error_response = e.body
+        return jsonify({'error': error_response}), 400
     except Exception as e:
-        current_app.logger.error(f"Error in signup_transactions: {str(e)}")
         return jsonify({'error': str(e)}), 500 
