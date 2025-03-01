@@ -22,12 +22,15 @@ def get_settings():
         users_collection = get_users_collection()
         user = users_collection.find_one({"phone_number": phone_number})
         
-        if not user or "settings" not in user:
-            return jsonify({'error': 'User settings not found'}), 404
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
         
-        # Return user settings
+        # Get settings or return default if not present
+        settings = user.get("settings")
+        
         return jsonify({
-            'settings': user["settings"]
+            'message': 'Settings retrieved successfully',
+            'settings': settings
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

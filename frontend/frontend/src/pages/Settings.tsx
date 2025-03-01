@@ -5,7 +5,7 @@ import CustomDropdown from '../components/CustomDropdown';
 import BankAccountStatus from '../components/BankAccountStatus';
 import { useAuth } from '../context/AuthContext';
 import { getUserSettings, updateUserSettings } from '../services/settingsService';
-import { toast } from 'react-hot-toast'; // Assuming you're using react-hot-toast for notifications
+import { toast } from 'react-hot-toast';
 
 const Settings = () => {
   const { firstName, lastName, token } = useAuth();
@@ -16,6 +16,7 @@ const Settings = () => {
   const [weeklyNotifications, setWeeklyNotifications] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [displayTime, setDisplayTime] = useState('');
   
   // Store original values for reverting changes
   const [originalValues, setOriginalValues] = useState({
@@ -23,7 +24,8 @@ const Settings = () => {
     selectedModel: 'gpt4',
     temperature: 0.7,
     timezone: 'America/New_York',
-    weeklyNotifications: true
+    weeklyNotifications: true,
+    displayTime: ''
   });
   
   // Timezone options
@@ -39,6 +41,14 @@ const Settings = () => {
   // Track if any changes were made
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Helper function to convert 24-hour time to 12-hour format with AM/PM
+  const formatTimeWithAMPM = (time24h: string): string => {
+    const [hours, minutes] = time24h.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
   // Fetch user settings on component mount
   useEffect(() => {
     const fetchSettings = async () => {
@@ -46,23 +56,38 @@ const Settings = () => {
       
       try {
         setIsLoading(true);
+        console.log('Fetching settings with token:', token ? 'Token exists' : 'No token');
         const response = await getUserSettings(token);
+        console.log('Settings response:', response);
         const settings = response.settings;
         
-        // Map backend settings to frontend state
-        setNotificationTime(settings.notification_time || '09:00');
-        setSelectedModel(settings.model || 'gpt4');
-        setTemperature(settings.temperature || 0.7);
-        setTimezone(settings.timezone || 'America/New_York');
-        setWeeklyNotifications(settings.financial_weekly_summary || true);
+        // Map backend settings to frontend state with defaults if values are missing
+        const time = settings.notification_time || '09:00';
+        const model = settings.model || 'gpt4';
+        const temp = settings.temperature || 0.7;
+        const tz = settings.timezone || 'America/New_York';
+        const weeklySummary = settings.financial_weekly_summary !== undefined ? 
+          settings.financial_weekly_summary : true;
+        
+        // Format time for display
+        const formattedDisplayTime = formatTimeWithAMPM(time);
+        
+        // Set state values
+        setNotificationTime(time);
+        setSelectedModel(model);
+        setTemperature(temp);
+        setTimezone(tz);
+        setWeeklyNotifications(weeklySummary);
+        setDisplayTime(formattedDisplayTime);
         
         // Store original values
         setOriginalValues({
-          notificationTime: settings.notification_time || '09:00',
-          selectedModel: settings.model || 'gpt4',
-          temperature: settings.temperature || 0.7,
-          timezone: settings.timezone || 'America/New_York',
-          weeklyNotifications: settings.financial_weekly_summary || true
+          notificationTime: time,
+          selectedModel: model,
+          temperature: temp,
+          timezone: tz,
+          weeklyNotifications: weeklySummary,
+          displayTime: formattedDisplayTime
         });
       } catch (error) {
         console.error('Failed to fetch settings:', error);
@@ -83,6 +108,11 @@ const Settings = () => {
       timezone !== originalValues.timezone ||
       weeklyNotifications !== originalValues.weeklyNotifications;
     setHasChanges(changed);
+    
+    // Update display time whenever notification time changes
+    if (notificationTime !== originalValues.notificationTime) {
+      setDisplayTime(formatTimeWithAMPM(notificationTime));
+    }
   }, [notificationTime, selectedModel, temperature, timezone, weeklyNotifications, originalValues]);
 
   const handleSave = async () => {
@@ -93,7 +123,7 @@ const Settings = () => {
       
       // Format time to ensure it's in HH:MM format
       const formattedTime = notificationTime.length === 5 ? 
-        notificationTime : // Already in HH:MM format
+        notificationTime : // Already in HH:MM
         notificationTime.padStart(5, '0'); // Ensure proper formatting
       
       // Map frontend state to backend settings format
@@ -115,7 +145,8 @@ const Settings = () => {
         selectedModel,
         temperature,
         timezone,
-        weeklyNotifications
+        weeklyNotifications,
+        displayTime: formatTimeWithAMPM(formattedTime)
       });
       
       setHasChanges(false);
@@ -208,8 +239,7 @@ const Settings = () => {
                 label="AI Model"
                 options={[
                   { value: 'gpt4', label: 'GPT-4' },
-                  { value: 'claude3', label: 'Claude 3' },
-                  { value: 'gemini', label: 'Gemini Pro' }
+                  { value: 'gpt3.5', label: 'GPT-3.5' }
                 ]}
                 value={selectedModel}
                 onChange={setSelectedModel}
