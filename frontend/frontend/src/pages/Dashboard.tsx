@@ -4,6 +4,7 @@ import { FiChevronDown, FiCheck, FiEdit2, FiRefreshCw, FiLock } from 'react-icon
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import TransactionsList from '../components/TransactionsList';
 import AccountsList from '../components/AccountsList';
+import StockTransactionsList from '../components/StockTransactionsList';
 import { useAuth } from '../context/AuthContext';
 
 // Define transaction interface
@@ -14,6 +15,7 @@ interface Transaction {
   name: string;
   amount: number;
   category: string[];
+  isCustom: boolean;
 }
 
 interface Account {
@@ -118,7 +120,7 @@ const Dashboard = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${BASE_URL}/api/plaid/transactions?days=30`, {
+      const response = await fetch(`${BASE_URL}/api/plaid/transactions?days=365&include_custom=true`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -140,7 +142,8 @@ const Dashboard = () => {
           date: tx.date,
           name: tx.name,
           amount: tx.amount,
-          category: tx.category || []
+          category: tx.category || [],
+          isCustom: tx.is_custom || false  // Add this to track custom transactions
         }));
         
         setTransactions(formattedTransactions);
@@ -490,6 +493,10 @@ const Dashboard = () => {
         </div>
 
         <AccountsList />
+        
+        <div className="mt-8">
+          <StockTransactionsList />
+        </div>
 
         <TransactionsList />
       </div>
