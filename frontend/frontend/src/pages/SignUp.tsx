@@ -5,6 +5,7 @@ import { FiArrowRight, FiPhone, FiLock, FiUser } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import PlaidLinkModal from '../components/PlaidLinkModal';
 import { exchangePublicTokenSignup } from '../services/plaidService';
+import CustomDropdown from '../components/CustomDropdown';
 
 const API_URL = 'http://localhost:5001/api';
 
@@ -13,6 +14,7 @@ const SignUp = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [timezone, setTimezone] = useState('America/New_York');
   const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,6 +22,16 @@ const SignUp = () => {
   
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Timezone options
+  const timezoneOptions = [
+    { value: 'America/New_York', label: 'Eastern Time (ET)' },
+    { value: 'America/Chicago', label: 'Central Time (CT)' },
+    { value: 'America/Denver', label: 'Mountain Time (MT)' },
+    { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+    { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+    { value: 'Pacific/Honolulu', label: 'Hawaii Time (HT)' }
+  ];
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +58,8 @@ const SignUp = () => {
         body: JSON.stringify({
           phone_number: phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber.replace(/\D/g, '')}`,
           first_name: firstName,
-          last_name: lastName
+          last_name: lastName,
+          timezone: timezone
         }),
       });
 
@@ -85,7 +98,8 @@ const SignUp = () => {
           phone_number: phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber.replace(/\D/g, '')}`,
           code: verificationCode,
           first_name: firstName,
-          last_name: lastName
+          last_name: lastName,
+          timezone: timezone
         }),
       });
 
@@ -313,6 +327,21 @@ const SignUp = () => {
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   We'll send a verification code to this number
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Time Zone
+                </label>
+                <CustomDropdown
+                  options={timezoneOptions}
+                  value={timezone}
+                  onChange={setTimezone}
+                  className="bg-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Select your local time zone for notifications
                 </p>
               </div>
 

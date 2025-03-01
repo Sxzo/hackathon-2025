@@ -48,6 +48,17 @@ TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
 # Initialize Twilio client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN else None
 
+default_settings = {
+    'timezone': 'America/New_York',  # This will be overridden by user input
+    'notification_time': '09:00',
+    'model': 'gpt-4',
+    'temperature': 0.7,
+    'financial_weekly_summary': True,
+    'financial_weekly_summary_time': '09:00',
+    'stock_weekly_summary': True,
+    'stock_weekly_summary_time': '09:00',
+}
+
 def generate_jwt_token(phone_number):
     """Generate JWT tokens for authentication."""
     # Create access token with phone number as identity
@@ -213,14 +224,21 @@ def verify_code():
             
         if verification_status == 'approved':
             if is_signup:
+                # Update default settings with user's timezone if provided
+                user_settings = default_settings.copy()
+                if 'timezone' in data:
+                    user_settings['timezone'] = data['timezone']
+
                 # Create new user
                 new_user = {
                     'phone_number': phone_number,
                     'first_name': data['first_name'],
                     'last_name': data['last_name'],
+                    'timezone': data['timezone'],
                     'status': 'verified',
                     'created_at': datetime.now(timezone.utc),
-                    'plaid_connected': False
+                    'plaid_connected': False #Remove?
+                    'settings': user_settings
                 }
                 
                 try:
@@ -263,7 +281,7 @@ def verify_code():
                 'status': 'failed',
                 'error': verification_status
             }), 401
-    
+            
     except Exception as e:
         print(f"Unexpected error during verification: {str(e)}")
         return jsonify({'error': f'Failed to verify code: {str(e)}'}), 500

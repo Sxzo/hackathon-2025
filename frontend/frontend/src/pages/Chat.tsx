@@ -17,6 +17,7 @@ const Chat = () => {
   const [isDeleting, setIsDeleting] = useState(false)
   const [typingSpeed, setTypingSpeed] = useState(50)
   const [aiThinkingTimeout, setAiThinkingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
+  const [promptSuggestions, setPromptSuggestions] = useState<string[]>([])
   
   const questions = [
     "How can I help with your finances today?",
@@ -30,6 +31,49 @@ const Chat = () => {
     "Want to make smarter financial decisions?",
     "Ready to take control of your finances?"
   ]
+
+  const promptBank = [
+    "How can I create a monthly budget?",
+    "What are some ways to save for retirement?",
+    "How do I reduce my debt quickly?",
+    "What's the difference between a Roth IRA and a traditional IRA?",
+    "How much should I have in my emergency fund?",
+    "What's the best way to improve my credit score?",
+    "How do I start investing with little money?",
+    "Should I pay off my mortgage early or invest?",
+    "How do I negotiate a higher salary?",
+    "What's the 50/30/20 budgeting rule?",
+    "How do I save for my child's education?",
+    "What are index funds and why are they recommended?",
+    "How do I create a debt repayment plan?",
+    "What tax deductions am I eligible for?",
+    "How do I choose the right health insurance plan?",
+    "What's the best way to save for a house down payment?",
+    "How do I protect myself from identity theft?",
+    "Should I refinance my student loans?",
+    "What's the difference between term and whole life insurance?",
+    "How do I prepare financially for having a baby?",
+    "What should I do with a financial windfall?",
+    "How do I plan for healthcare costs in retirement?",
+    "What's the best way to track my expenses?",
+    "How do I start a side hustle to earn extra income?",
+    "What are the pros and cons of leasing vs. buying a car?",
+    "How do I talk to my partner about money?",
+    "What financial documents should I keep and for how long?",
+    "How do I calculate my net worth?",
+    "What's the best strategy for paying off multiple credit cards?",
+    "How do I financially prepare for a recession?"
+  ]
+
+  useEffect(() => {
+    // Randomly select 3 unique prompts from the prompt bank
+    const getRandomPrompts = () => {
+      const shuffled = [...promptBank].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, 3);
+    };
+    
+    setPromptSuggestions(getRandomPrompts());
+  }, []);
 
   useEffect(() => {
     if (!hasInteracted) {
@@ -132,9 +176,9 @@ const Chat = () => {
   }
 
   return (
-    <div className="bg-white min-h-screen flex">
-      <div className={`w-full max-w-3xl mx-auto transition-all duration-700 ease-in-out rounded-lg overflow-hidden relative ${hasInteracted ? 'mt-[96px] h-[calc(100vh-112px)]' : 'h-[280px] self-center mt-[96px]'}`}>
-        <div className={`flex-1 w-full overflow-y-auto no-scrollbar transition-all duration-700 flex flex-col ${hasInteracted ? 'opacity-100 h-[calc(100vh-232px)]' : 'opacity-0 h-0'}`}>
+    <div className="bg-white min-h-screen flex items-end justify-center pb-0">
+      <div className={`w-full max-w-4xl mx-auto transition-all duration-700 ease-in-out rounded-lg overflow-hidden relative ${hasInteracted ? 'h-[calc(100vh-40px)] mt-[20px]' : 'h-[700px] mt-[40vh] mb-auto'}`}>
+        <div className={`flex-1 w-full overflow-y-auto no-scrollbar transition-all duration-700 flex flex-col ${hasInteracted ? 'opacity-100 h-[calc(100vh-180px)]' : 'opacity-0 h-0'}`}>
           {/* Chat Messages */}
           <div className="w-full flex-1 flex flex-col-reverse">
             <div ref={messagesEndRef} />
@@ -166,12 +210,12 @@ const Chat = () => {
         {/* Input Area */}
         <form 
           onSubmit={handleSubmit} 
-          className={`w-full bg-white transition-all duration-700 ease-in-out ${hasInteracted ? 'px-4 py-4' : 'px-4 py-4'}`}
+          className={`w-full bg-white transition-all duration-700 ease-in-out ${hasInteracted ? 'px-0 py-0' : 'px-0 py-0'}`}
         >
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-[95%] mx-auto">
             {!hasInteracted && (
               <h1 
-                className="text-2xl font-semibold text-gray-800 text-center mb-8 select-none"
+                className="text-2xl font-semibold text-gray-800 text-center mb-2 select-none"
               >
                 {displayText}
                 <span className="inline-block w-0.5 h-5 bg-gray-800 ml-0.5 animate-blink"></span>
@@ -183,7 +227,7 @@ const Chat = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Ask anything..."
-                className="w-full rounded-lg pr-12 pl-4 py-3 bg-white text-gray-900 text-sm focus:outline-none focus:ring-0 shadow-md transition-all duration-200"
+                className="w-full rounded-lg pr-10 pl-2 py-2 bg-white text-gray-900 text-base focus:outline-none shadow-md focus:shadow-md transition-shadow duration-200"
               />
               {isOnCooldown && aiThinkingTimeout ? (
                 <button 
@@ -223,8 +267,22 @@ const Chat = () => {
                 </button>
               )}
             </div>
+            
+            {!hasInteracted && (
+              <div className="mt-4 space-y-2 animate-fadeIn animation-delay-500">
+                {promptSuggestions.map((prompt, index) => (
+                  <button 
+                    key={index}
+                    onClick={() => setInputValue(prompt)}
+                    className="w-full text-left px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm text-gray-700 transition-colors duration-200"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="max-w-2xl mx-auto mt-2">
+          <div className="max-w-[95%] mx-auto mt-1">
             {hasInteracted && (
               <p className="text-xs text-center text-gray-400 animate-fadeIn animation-delay-500">
                 Finn is not flawless. Check important information.
@@ -232,11 +290,13 @@ const Chat = () => {
             )}
           </div>
         </form>
+        {/* Removing the red bar
         {hasInteracted && (
           <div className="absolute bottom-0 left-0 right-0">
             <div className="w-full h-1 bg-red-500 rounded-b-lg" />
           </div>
         )}
+        */}
       </div>
     </div>
   )
