@@ -8,6 +8,7 @@ module.exports = {
       animation: {
         fadeIn: 'fadeIn 1s ease-in-out forwards',
         fadeInRight: 'fadeInRight 1s ease-in-out forwards',
+        blink: 'blink 1s step-end infinite',
       },
       keyframes: {
         fadeIn: {
@@ -18,6 +19,10 @@ module.exports = {
           '0%': { opacity: '0', transform: 'translateX(20px)' },
           '100%': { opacity: '1', transform: 'translateX(0)' },
         },
+        blink: {
+          '0%, 100%': { opacity: 1 },
+          '50%': { opacity: 0 },
+        }
       },
     },
   },

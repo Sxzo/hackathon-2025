@@ -1,6 +1,6 @@
 const Settings = () => {
   return (
-    <div className="bg-gray-50 min-h-screen pt-20">
+    <div className="bg-gray-50 min-h-screen pt-4">
       <div className="container mx-auto p-4">
         <h1 className="text-3xl font-bold mb-6 text-[#004977]">Settings</h1>
 

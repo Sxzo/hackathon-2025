@@ -4,51 +4,62 @@ interface AuthContextType {
   isAuthenticated: boolean;
   token: string | null;
   phoneNumber: string | null;
-  login: (token: string, phoneNumber: string) => void;
+  firstName: string | null;
+  lastName: string | null;
+  login: (token: string, phoneNumber: string, firstName: string, lastName: string) => void;
   logout: () => void;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+interface AuthState {
+  token: string | null;
+  phoneNumber: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [token, setToken] = useState<string | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+  const [auth, setAuth] = useState<AuthState>({
+    token: localStorage.getItem('finn_auth_token'),
+    phoneNumber: localStorage.getItem('finn_phone_number'),
+    firstName: localStorage.getItem('finn_first_name'),
+    lastName: localStorage.getItem('finn_last_name')
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check if token exists in localStorage on initial load
-    const storedToken = localStorage.getItem('finn_auth_token');
-    const storedPhone = localStorage.getItem('finn_phone_number');
-    
-    if (storedToken) {
-      setToken(storedToken);
-      setPhoneNumber(storedPhone);
-      setIsAuthenticated(true);
-    }
-    
     setIsLoading(false);
   }, []);
 
-  const login = (newToken: string, newPhoneNumber: string) => {
-    localStorage.setItem('finn_auth_token', newToken);
-    localStorage.setItem('finn_phone_number', newPhoneNumber);
-    setToken(newToken);
-    setPhoneNumber(newPhoneNumber);
-    setIsAuthenticated(true);
+  const login = (token: string, phoneNumber: string, firstName: string, lastName: string) => {
+    localStorage.setItem('finn_auth_token', token);
+    localStorage.setItem('finn_phone_number', phoneNumber);
+    localStorage.setItem('finn_first_name', firstName);
+    localStorage.setItem('finn_last_name', lastName);
+    setAuth({ token, phoneNumber, firstName, lastName });
   };
 
   const logout = () => {
     localStorage.removeItem('finn_auth_token');
     localStorage.removeItem('finn_phone_number');
-    setToken(null);
-    setPhoneNumber(null);
-    setIsAuthenticated(false);
+    localStorage.removeItem('finn_first_name');
+    localStorage.removeItem('finn_last_name');
+    setAuth({ token: null, phoneNumber: null, firstName: null, lastName: null });
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, token, phoneNumber, login, logout, isLoading }}>
+    <AuthContext.Provider value={{
+      isAuthenticated: !!auth.token,
+      token: auth.token,
+      phoneNumber: auth.phoneNumber,
+      firstName: auth.firstName,
+      lastName: auth.lastName,
+      login,
+      logout,
+      isLoading
+    }}>
       {children}
     </AuthContext.Provider>
   );

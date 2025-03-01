@@ -53,7 +53,7 @@ const Landing = () => {
 
   return (
     <div className="bg-white text-gray-800 min-h-screen">
-      <div className="container mx-auto px-4 pt-24 pb-16">
+      <div className="container mx-auto px-4 pt-16 pb-16">
         {/* Hero Section */}
         <div className="flex flex-col md:flex-row items-center gap-12">
           {/* Left side - Text content */}
@@ -131,7 +131,7 @@ const Landing = () => {
                   <div className="bg-white p-3 rounded-lg shadow-sm inline-block border border-gray-200">
                     <p className="text-gray-800">
                       I'd be happy to help! Based on your spending history, I can suggest a savings plan. How much do you need for your vacation and{" "}
-                      <span className="font-medium">when are you planning to go?</span>
+                      <span>when are you planning to go?</span>
                     </p>
                   </div>
                 </div>
