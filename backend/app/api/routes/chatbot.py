@@ -109,7 +109,7 @@ Transaction history:
         print("Calling OpenAI API...")
         # Call OpenAI API with the new format
         response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=messages,
             temperature=0.7,
             max_tokens=500
@@ -124,8 +124,8 @@ Transaction history:
         chat_history.append({"role": "assistant", "content": assistant_response})
         
         # Keep only the last 20 messages to avoid memory issues
-        if len(chat_history) > 20:
-            chat_history = chat_history[-20:]
+        if len(chat_history) > 30:
+            chat_history = chat_history[-30:]
         
         # Update user in database
         users_collection.update_one(
