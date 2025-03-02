@@ -7,6 +7,7 @@ from openai import OpenAI
 from flask_cors import cross_origin
 import requests
 import time
+from app.fetch import fetch
 
 # Import Plaid client from plaid.py
 from app.api.routes.plaid import client as plaid_client, TransactionsGetRequest, TransactionsGetRequestOptions, standardize_phone_number
@@ -89,6 +90,7 @@ def fetch_stock_performance(tickers):
                 "volume_avg": weekly_volume
             }
             
+        performance_data = fetch()
         return performance_data
     except Exception as e:
         print(f"Error fetching stock performance: {str(e)}")
@@ -206,10 +208,7 @@ def format_stock_performance(performance_data, indices_data):
                 prompt_text += f"{ticker}: {data['error']}\n"
                 continue
                 
-            change_symbol = "↑" if data["percent_change"] >= 0 else "↓"
-            prompt_text += f"{ticker}: ${data['current_price']} ({change_symbol}{abs(data['percent_change'])}%)\n"
-            prompt_text += f"  Weekly Range: ${data['low']} - ${data['high']}\n"
-            prompt_text += f"  Average Volume: {data['volume_avg']:,}\n"
+            prompt_text += f"{ticker}: {data["percent_change"]}\n"
     
     return prompt_text
 

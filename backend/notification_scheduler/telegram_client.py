@@ -141,8 +141,7 @@ class TelegramClient:
             if "market_indices" in summary and summary["market_indices"]:
                 prompt += "Market Indices:\n"
                 for index_name, data in summary["market_indices"].items():
-                    change_symbol = "↑" if data["percent_change"] >= 0 else "↓"
-                    prompt += f"{index_name}: {data['current_price']} ({change_symbol}{abs(data['percent_change'])}%)\n"
+                    prompt += f"{index_name}: {data['percent_change']}\n"
                 prompt += "\n"
             
             # Add individual stocks
@@ -152,10 +151,7 @@ class TelegramClient:
                     prompt += f"{ticker}: {data['error']}\n"
                     continue
                     
-                change_symbol = "↑" if data["percent_change"] >= 0 else "↓"
-                prompt += f"{ticker}: ${data['current_price']} ({change_symbol}{abs(data['percent_change'])}%)\n"
-                prompt += f"  Weekly Range: ${data['low']} - ${data['high']}\n"
-                prompt += f"  Average Volume: {data['volume_avg']:,}\n"
+                prompt += f"{ticker}: {data['percent_change']}\n"
             prompt += "\n"
         
         # Add stock news if it exists
@@ -199,9 +195,9 @@ class TelegramClient:
             prompt += "2. Overall portfolio performance compared to market indices\n"
             prompt += "3. Any significant news that might impact their holdings\n"
             prompt += "4. Suggestions for portfolio adjustments if appropriate\n"
-        else:
-            prompt += "\nPlease provide a brief analysis of their stock portfolio and any changes in value if it exists.\n"
         
+        # Format message
+        prompt += "Format the message using HTML to be sent through Telegram. Only use HTML tags that are for formatting, not for structure. Do not start your message with grave accents to signal a block."
         return prompt
     
     def format_transaction_summary(self, user_name, summary):

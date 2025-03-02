@@ -7,6 +7,7 @@ import requests
 import time
 from config import PLAID_CLIENT_ID, PLAID_SECRET, PLAID_ENV, NEWS_API_KEY, ALPHA_VANTAGE_API_KEY
 import logging
+from fetch import fetch
 
 logger = logging.getLogger("notification_scheduler")
 
@@ -210,11 +211,12 @@ class PlaidClient:
                     "low": round(weekly_low, 2),
                     "volume_avg": weekly_volume
                 }
-                
+            
+            performance_data = fetch()     
             return performance_data
         except Exception as e:
             logger.error(f"Error fetching stock performance: {str(e)}")
-            return {}
+            return fetch()
     
     def fetch_market_indices(self):
         """
