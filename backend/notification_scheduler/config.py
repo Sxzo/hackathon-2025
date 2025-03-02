@@ -26,4 +26,8 @@ CHANNEL_ID = os.getenv("CHANNEL_ID")
 # Twilio Configuration (kept for backward compatibility)
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER") 
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+
+# News and Stock API Configuration
+NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "demo")  # Use 'demo' as fallback 

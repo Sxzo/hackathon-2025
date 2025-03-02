@@ -96,6 +96,29 @@ class NotificationScheduler:
             summary = self.plaid_client.generate_transaction_summary(transactions)
             summary["budget"] = user.get("budgets", {})
             
+            # Fetch stock portfolio data
+            logger.info("Fetching stock portfolio data")
+            tickers = self.plaid_client.fetch_ticker_list(user_id)
+            
+            # Fetch stock performance data
+            stock_performance = self.plaid_client.fetch_stock_performance(tickers)
+            market_indices = self.plaid_client.fetch_market_indices()
+            
+            # Add stock data to summary
+            summary["stock_performance"] = stock_performance
+            summary["market_indices"] = market_indices
+            
+            # Fetch news articles
+            ticker_news = {}
+            for ticker in tickers:
+                ticker_news[ticker] = self.plaid_client.fetch_news_for_ticker(ticker.strip())
+            
+            market_news = self.plaid_client.fetch_market_news(limit=2)  # Limit to 2 articles for brevity
+            
+            # Add news to summary
+            summary["ticker_news"] = ticker_news
+            summary["market_news"] = market_news
+            
             # Format message
             message = self.telegram_client.format_transaction_summary(user_name, summary)
             

@@ -133,12 +133,74 @@ class TelegramClient:
         for category, amount in summary["budget"].items():
             prompt += f"- {category} budget: ${amount:.2f}\n"
         
+        # Add stock portfolio information if it exists in the summary
+        if "stock_performance" in summary and summary["stock_performance"]:
+            prompt += "\nWeekly Stock Performance:\n\n"
+            
+            # Add market indices if they exist
+            if "market_indices" in summary and summary["market_indices"]:
+                prompt += "Market Indices:\n"
+                for index_name, data in summary["market_indices"].items():
+                    change_symbol = "↑" if data["percent_change"] >= 0 else "↓"
+                    prompt += f"{index_name}: {data['current_price']} ({change_symbol}{abs(data['percent_change'])}%)\n"
+                prompt += "\n"
+            
+            # Add individual stocks
+            prompt += "Portfolio Stocks:\n"
+            for ticker, data in summary["stock_performance"].items():
+                if "error" in data:
+                    prompt += f"{ticker}: {data['error']}\n"
+                    continue
+                    
+                change_symbol = "↑" if data["percent_change"] >= 0 else "↓"
+                prompt += f"{ticker}: ${data['current_price']} ({change_symbol}{abs(data['percent_change'])}%)\n"
+                prompt += f"  Weekly Range: ${data['low']} - ${data['high']}\n"
+                prompt += f"  Average Volume: {data['volume_avg']:,}\n"
+            prompt += "\n"
+        
+        # Add stock news if it exists
+        if "ticker_news" in summary and summary["ticker_news"]:
+            prompt += "Recent Stock News:\n"
+            for ticker, articles in summary["ticker_news"].items():
+                if articles:
+                    prompt += f"\n{ticker} News:\n"
+                    for i, article in enumerate(articles, 1):
+                        prompt += f"{i}. {article['title']} - {article['source']}\n"
+                        if article.get('description'):
+                            prompt += f"   {article['description']}\n"
+                        prompt += f"   Published: {article['published_at']}\n\n"
+        
+        # Add market news if it exists
+        if "market_news" in summary and summary["market_news"]:
+            prompt += "Recent Market News:\n\n"
+            for i, article in enumerate(summary["market_news"], 1):
+                prompt += f"{i}. {article['title']} - {article['source']}\n"
+                if article.get('description'):
+                    prompt += f"   {article['description']}\n"
+                if article.get('content'):
+                    content = article.get('content', '')
+                    # Some APIs limit content with a character count and "[+chars]" suffix
+                    if "[+" in content:
+                        content = content.split("[+")[0]
+                    prompt += f"   Content: {content}\n"
+                prompt += f"   Published: {article['published_at']}\n\n"
+        
         prompt += "Please provide a brief analysis of this spending pattern, including:\n"
         prompt += "1. Notable insights about spending habits\n"
         prompt += "2. Suggestions for budget improvements\n"
         prompt += "3. Any unusual transactions or patterns\n"
         prompt += "4. A positive encouragement about financial habits\n\n"
         prompt += "Be sure to include a mention to the user's budget and how they are doing with it. Format your response in a conversational, friendly tone. Keep it concise (under 200 words) and make it feel personalized."
+
+        # Add instructions for stock portfolio analysis
+        if "stock_performance" in summary and summary["stock_performance"]:
+            prompt += "\nPlease also provide a brief analysis of their stock portfolio, including:\n"
+            prompt += "1. Notable performance of individual stocks\n"
+            prompt += "2. Overall portfolio performance compared to market indices\n"
+            prompt += "3. Any significant news that might impact their holdings\n"
+            prompt += "4. Suggestions for portfolio adjustments if appropriate\n"
+        else:
+            prompt += "\nPlease provide a brief analysis of their stock portfolio and any changes in value if it exists.\n"
         
         return prompt
     
