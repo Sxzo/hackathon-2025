@@ -1,121 +1,128 @@
-# Financial Notification Scheduler
+# Notification Scheduler
 
-This system automatically sends Telegram notifications to users with a summary of their recent financial transactions based on their preferred notification time, respecting each user's timezone.
+A Python-based notification scheduler that sends personalized financial insights via Telegram. The system retrieves user data from MongoDB, processes transaction information, and delivers AI-enhanced notifications based on user preferences and timezone settings.
 
 ## Features
 
-- Checks MongoDB for users who should receive notifications at the current time
-- Respects each user's timezone when determining notification time
-- Rounds time to the nearest minute to ensure notifications are sent at the exact time
-- Fetches recent transaction data from Plaid
-- Generates a summary of financial activity
-- Sends personalized Telegram notifications
-- Runs as a scheduled service that checks for notifications every minute
+- **Telegram Integration**: Sends notifications via Telegram instead of SMS
+- **MongoDB Integration**: Stores user data and preferences
+- **Timezone Awareness**: Respects user timezones when determining notification times
+- **Time Rounding**: Rounds notification times to the nearest minute to ensure consistent delivery
+- **AI-Powered Insights**: Uses OpenAI to generate personalized financial insights based on transaction data
+- **Customizable Notification Schedule**: Allows users to set preferred notification times
 
-## Prerequisites
+## Setup
+
+### Prerequisites
 
 - Python 3.8+
-- MongoDB database with user information
-- Plaid API credentials
-- Telegram Bot Token (create a bot using BotFather)
+- MongoDB
+- Telegram Bot
+- OpenAI API Key
 
-## Installation
+### Installation
 
 1. Clone the repository
 2. Install dependencies:
    ```
    pip install -r requirements.txt
    ```
-3. Copy `.env.example` to `.env` and fill in your configuration details:
-   ```
-   cp .env.example .env
-   ```
+3. Create a `.env` file based on `.env.example` and fill in your credentials
 
-## Configuration
+### Creating a Telegram Bot
 
-Edit the `.env` file with your credentials:
+1. Start a chat with BotFather (@BotFather) on Telegram
+2. Send the command `/newbot` and follow the instructions
+3. Copy the bot token provided by BotFather
+4. Add the token to your `.env` file as `TELEGRAM_BOT_TOKEN`
 
-```
-# MongoDB Configuration
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DB_NAME=finn_ai
-MONGODB_COLLECTION=users
+### Getting Your Telegram Chat ID
 
-# Plaid API Configuration
-PLAID_CLIENT_ID=your_plaid_client_id
-PLAID_SECRET=your_plaid_secret
-PLAID_ENV=sandbox  # sandbox, development, or production
+1. Start a chat with your bot
+2. Send any message to the bot
+3. Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+4. Look for the `chat` object and note the `id` field
+5. Add this ID to your `.env` file as `CHANNEL_ID`
 
-# Telegram Configuration
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-```
+### Setting Up OpenAI API
 
-## Creating a Telegram Bot
+1. Create an account on [OpenAI](https://platform.openai.com/)
+2. Generate an API key in your account settings
+3. Add the API key to your `.env` file as `OPENAI_API_KEY`
+4. Optionally, specify a different model in your `.env` file as `OPENAI_MODEL` (default is gpt-4o-mini)
 
-1. Open Telegram and search for "BotFather"
-2. Start a chat with BotFather and send the command `/newbot`
-3. Follow the instructions to create a new bot
-4. Once created, BotFather will provide you with a token - add this to your `.env` file as `TELEGRAM_BOT_TOKEN`
-5. Start a chat with your new bot and send a message to it
-6. To get your chat ID, visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates` in your browser after sending a message to the bot
-7. Look for the `"chat":{"id":123456789}` value in the response - this is your chat ID
+## User Schema
 
-## MongoDB User Schema
-
-Your MongoDB collection should have users with the following structure:
+The MongoDB collection stores user documents with the following structure:
 
 ```json
 {
-  "_id": {"$oid": "67c348a804e365fa3d283b97"},
+  "name": "John Doe",
+  "phone": "+1234567890",
   "telegram_chat_id": "123456789",
-  "first_name": "John",
-  "last_name": "Doe",
+  "notification_time": "09:00",
   "timezone": "America/New_York",
-  "plaid_access_token": "access-sandbox-xxxxxxxx",
-  "settings": {
-    "timezone": "America/New_York",
-    "financial_weekly_summary": true,
-    "financial_weekly_summary_time": "08:00",
-    "stock_weekly_summary": true,
-    "stock_weekly_summary_time": "09:00"
-  }
+  "budget": {
+    "groceries": 300,
+    "dining": 200,
+    "entertainment": 150
+  },
+  "transactions": [
+    {
+      "date": "2023-04-15",
+      "amount": 45.67,
+      "category": "groceries",
+      "merchant": "Whole Foods"
+    }
+  ]
 }
 ```
 
-## Timezone and Time Handling
+## Timezone Handling
 
-The system respects each user's timezone when determining when to send notifications:
+The notification scheduler is designed to respect each user's timezone when determining notification times:
 
-1. The scheduler runs every minute and checks for users who should receive notifications
-2. The current time is rounded to the nearest minute to ensure precision:
-   - If seconds are less than 30, it rounds down to the current minute
-   - If seconds are 30 or more, it rounds up to the next minute
-3. For each user with `financial_weekly_summary` enabled, it:
-   - Converts the rounded UTC time to the user's local timezone
-   - Compares the user's local time with their configured notification time
-   - If they match, the user receives a notification
+1. Each user document includes a `timezone` field (e.g., "America/New_York", "Europe/London")
+2. The scheduler converts the user's notification time to UTC for internal processing
+3. When checking if a notification should be sent, the current time is compared in the user's local timezone
+4. The system rounds times to the nearest minute to ensure notifications are not missed due to second/microsecond discrepancies
 
-This ensures that users receive notifications at their preferred local time, regardless of where they are located, and that notifications are sent at the exact minute specified, not a few seconds before or after.
+This approach ensures that users receive notifications at their preferred local time, regardless of where they are located or where the server is hosted.
 
-## Adding a Test User
+## AI-Powered Insights
 
-You can add a test user to your database with:
+The notification scheduler uses OpenAI to generate personalized financial insights:
 
-```
-python add_test_user.py
-```
+1. Transaction data and budget information are analyzed to identify spending patterns
+2. The OpenAI API is called with a carefully crafted prompt that includes:
+   - Recent transaction details
+   - Budget allocations and remaining amounts
+   - Spending trends across categories
+3. The AI generates insights such as:
+   - Budget adherence recommendations
+   - Spending pattern observations
+   - Personalized saving tips
+   - Category-specific advice
 
-Make sure to edit the script first to include your actual Telegram chat ID.
+These AI-powered insights are included in the Telegram notifications, providing users with more valuable and actionable information about their financial situation.
 
-## Usage
-
-Run the scheduler:
+## Running the Scheduler
 
 ```
 python scheduler.py
 ```
 
-The scheduler will run continuously, checking every minute for users who should receive notifications.
+The scheduler will run continuously, checking for users who should receive notifications based on their preferred notification time and timezone.
+
+## Testing
+
+You can add a test user to the database using the provided script:
+
+```
+python add_test_user.py
+```
+
+Make sure to edit the script first to include your Telegram chat ID.
 
 ## Diagnostic Tool
 

@@ -94,6 +94,7 @@ class NotificationScheduler:
             
             # Generate summary
             summary = self.plaid_client.generate_transaction_summary(transactions)
+            summary["budget"] = user.get("budgets", {})
             
             # Format message
             message = self.telegram_client.format_transaction_summary(user_name, summary)
