@@ -152,10 +152,10 @@ const Chat = () => {
     }
 
     try {
-      // Add a temporary "thinking" message
+      // Add a temporary "thinking" message with animated indicator
       const thinkingMessage = {
         id: messages.length + 2,
-        text: "Thinking...",
+        text: "thinking", // Special marker for the thinking state
         isAi: true
       }
       
@@ -241,9 +241,20 @@ const Chat = () => {
                     >
                       {message.isAi ? (
                         <div className="text-[15px] leading-relaxed prose prose-sm max-w-none">
-                          <ReactMarkdown>
-                            {message.text}
-                          </ReactMarkdown>
+                          {message.text === "thinking" ? (
+                            <div className="flex items-center">
+                              <span className="mr-2">Thinking</span>
+                              <div className="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                              </div>
+                            </div>
+                          ) : (
+                            <ReactMarkdown>
+                              {message.text}
+                            </ReactMarkdown>
+                          )}
                         </div>
                       ) : (
                         <p className="text-[15px] leading-relaxed">

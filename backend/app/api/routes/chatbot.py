@@ -279,7 +279,7 @@ def chat():
         
         # Set date range for transactions (last 30 days)
         end_date = datetime.now().date()
-        start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=120)
         
         # Create request for transactions
         transactions_request = TransactionsGetRequest(
