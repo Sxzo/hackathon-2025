@@ -5,6 +5,8 @@ from app.database import get_users_collection
 from datetime import datetime, timedelta
 from openai import OpenAI
 from flask_cors import cross_origin
+import requests
+import time
 
 # Import Plaid client from plaid.py
 from app.api.routes.plaid import client as plaid_client, TransactionsGetRequest, TransactionsGetRequestOptions, standardize_phone_number
@@ -13,7 +15,237 @@ chatbot_bp = Blueprint('chatbot', __name__)
 
 # Initialize OpenAI client with the new format
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
+ALPHA_VANTAGE_API_KEY = os.environ.get('ALPHA_VANTAGE_API_KEY', 'demo')  # Use 'demo' as fallback
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+def fetch_ticker_list(phone_number):
+    """Fetch the list of tickers from the database."""
+    # users_collection = get_users_collection()
+    # user = users_collection.find_one({"phone_number": phone_number})
+    # return user.get("tickers", [])
+    return ['AMD', 'TSLA', 'NVDA', 'META']
+
+def fetch_stock_performance(tickers):
+    """Fetch stock performance data for the given tickers using Alpha Vantage."""
+    try:
+        performance_data = {}
+        
+        for ticker in tickers:
+            # Use Alpha Vantage's Global Quote API to get current stock data
+            url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={ticker}&apikey={ALPHA_VANTAGE_API_KEY}"
+            response = requests.get(url)
+            
+            # Add a small delay to avoid rate limiting
+            time.sleep(0.5)
+            
+            data = response.json()
+            
+            if "Global Quote" not in data or not data["Global Quote"]:
+                performance_data[ticker] = {
+                    "error": f"No data available for {ticker}"
+                }
+                continue
+            
+            quote = data["Global Quote"]
+            
+            # Extract current price and change
+            current_price = float(quote.get("05. price", 0))
+            change_percent = float(quote.get("10. change percent", "0%").replace("%", ""))
+            
+            # Get weekly high/low from the daily adjusted API
+            weekly_url = f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={ticker}&outputsize=compact&apikey={ALPHA_VANTAGE_API_KEY}"
+            weekly_response = requests.get(weekly_url)
+            
+            # Add a small delay to avoid rate limiting
+            time.sleep(0.5)
+            
+            weekly_data = weekly_response.json()
+            
+            # Extract weekly high/low if available
+            weekly_high = current_price
+            weekly_low = current_price
+            weekly_volume = 0
+            
+            if "Time Series (Daily)" in weekly_data:
+                # Get the last 5 trading days (approximately a week)
+                time_series = weekly_data["Time Series (Daily)"]
+                dates = list(time_series.keys())[:5]  # Last 5 trading days
+                
+                if dates:
+                    highs = [float(time_series[date]["2. high"]) for date in dates]
+                    lows = [float(time_series[date]["3. low"]) for date in dates]
+                    volumes = [int(float(time_series[date]["6. volume"])) for date in dates]
+                    
+                    weekly_high = max(highs)
+                    weekly_low = min(lows)
+                    weekly_volume = sum(volumes) // len(volumes)  # Average volume
+            
+            performance_data[ticker] = {
+                "current_price": round(current_price, 2),
+                "percent_change": round(change_percent, 2),
+                "high": round(weekly_high, 2),
+                "low": round(weekly_low, 2),
+                "volume_avg": weekly_volume
+            }
+            
+        return performance_data
+    except Exception as e:
+        print(f"Error fetching stock performance: {str(e)}")
+        return {}
+
+def fetch_market_indices():
+    """Fetch performance data for major market indices using Alpha Vantage."""
+    indices = {
+        'SPY': 'S&P 500',
+        'DIA': 'Dow Jones',
+        'QQQ': 'NASDAQ',
+        'IWM': 'Russell 2000'
+    }
+    
+    try:
+        indices_data = {}
+        
+        for symbol, name in indices.items():
+            url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}"
+            response = requests.get(url)
+            
+            # Add a small delay to avoid rate limiting
+            time.sleep(0.5)
+            
+            data = response.json()
+            
+            if "Global Quote" not in data or not data["Global Quote"]:
+                continue
+                
+            quote = data["Global Quote"]
+            current_price = float(quote.get("05. price", 0))
+            change_percent = float(quote.get("10. change percent", "0%").replace("%", ""))
+            
+            indices_data[name] = {
+                "current_price": round(current_price, 2),
+                "percent_change": round(change_percent, 2)
+            }
+            
+        return indices_data
+    except Exception as e:
+        print(f"Error fetching market indices: {str(e)}")
+        return {}
+
+def fetch_news_for_ticker(ticker, limit=2):
+    """Fetch news articles for a specific ticker."""
+    try:
+        url = f"https://newsapi.org/v2/everything?q={ticker}+stock&sortBy=publishedAt&pageSize={limit}&apiKey={NEWS_API_KEY}"
+        response = requests.get(url)
+        data = response.json()
+        
+        if response.status_code != 200 or data.get('status') != 'ok':
+            print(f"Error fetching news for {ticker}: {data.get('message', 'Unknown error')}")
+            return []
+        
+        articles = data.get('articles', [])
+        return [
+            {
+                'title': article.get('title'),
+                'description': article.get('description'),
+                'content': article.get('content'),
+                'source': article.get('source', {}).get('name'),
+                'published_at': article.get('publishedAt'),
+                'url': article.get('url')
+            }
+            for article in articles[:limit]
+        ]
+    except Exception as e:
+        print(f"Exception fetching news for {ticker}: {str(e)}")
+        return []
+
+def fetch_market_news(limit=4):
+    """Fetch general market news."""
+    try:
+        url = f"https://newsapi.org/v2/top-headlines?category=business&country=us&pageSize={limit}&apiKey={NEWS_API_KEY}"
+        response = requests.get(url)
+        data = response.json()
+        
+        if response.status_code != 200 or data.get('status') != 'ok':
+            print(f"Error fetching market news: {data.get('message', 'Unknown error')}")
+            return []
+        
+        articles = data.get('articles', [])
+        return [
+            {
+                'title': article.get('title'),
+                'description': article.get('description'),
+                'content': article.get('content'),
+                'source': article.get('source', {}).get('name'),
+                'published_at': article.get('publishedAt'),
+                'url': article.get('url')
+            }
+            for article in articles[:limit]
+        ]
+    except Exception as e:
+        print(f"Exception fetching market news: {str(e)}")
+        return []
+
+def format_stock_performance(performance_data, indices_data):
+    """Format stock performance data for inclusion in the prompt."""
+    prompt_text = "Weekly Stock Performance:\n\n"
+    
+    # Add market indices
+    if indices_data:
+        prompt_text += "Market Indices:\n"
+        for index_name, data in indices_data.items():
+            change_symbol = "↑" if data["percent_change"] >= 0 else "↓"
+            prompt_text += f"{index_name}: {data['current_price']} ({change_symbol}{abs(data['percent_change'])}%)\n"
+        prompt_text += "\n"
+    
+    # Add individual stocks
+    if performance_data:
+        prompt_text += "Portfolio Stocks:\n"
+        for ticker, data in performance_data.items():
+            if "error" in data:
+                prompt_text += f"{ticker}: {data['error']}\n"
+                continue
+                
+            change_symbol = "↑" if data["percent_change"] >= 0 else "↓"
+            prompt_text += f"{ticker}: ${data['current_price']} ({change_symbol}{abs(data['percent_change'])}%)\n"
+            prompt_text += f"  Weekly Range: ${data['low']} - ${data['high']}\n"
+            prompt_text += f"  Average Volume: {data['volume_avg']:,}\n"
+    
+    return prompt_text
+
+def format_news_for_prompt(ticker_news, market_news):
+    """Format news articles for inclusion in the prompt."""
+    prompt_text = "Recent Market News:\n\n"
+    
+    # Add market news
+    if market_news:
+        for i, article in enumerate(market_news, 1):
+            prompt_text += f"{i}. {article['title']} - {article['source']}\n"
+            if article.get('description'):
+                prompt_text += f"   {article['description']}\n"
+            if article.get('content'):
+                content = article.get('content', '')
+                # Some APIs limit content with a character count and "[+chars]" suffix
+                if "[+" in content:
+                    content = content.split("[+")[0]
+                prompt_text += f"   Content: {content}\n"
+            prompt_text += f"   Published: {article['published_at']}\n\n"
+    else:
+        prompt_text += "No recent market news available.\n\n"
+    
+    # Add ticker-specific news
+    if ticker_news:
+        prompt_text += "Recent Stock News:\n"
+        for ticker, articles in ticker_news.items():
+            if articles:
+                prompt_text += f"\n{ticker} News:\n"
+                for i, article in enumerate(articles, 1):
+                    prompt_text += f"{i}. {article['title']} - {article['source']}\n"
+                    if article.get('description'):
+                        prompt_text += f"   {article['description']}\n"
+                    prompt_text += f"   Published: {article['published_at']}\n\n"
+    
+    return prompt_text
 
 @chatbot_bp.route('/chat', methods=['POST'])
 @jwt_required()
@@ -94,6 +326,24 @@ def chat():
         else:
             budget_info += "No budget information available.\n"
         
+        # Fetch news for tickers and market
+        tickers = fetch_ticker_list(phone_number)
+        
+        # Fetch stock performance data
+        stock_performance = fetch_stock_performance(tickers)
+        market_indices = fetch_market_indices()
+        performance_info = format_stock_performance(stock_performance, market_indices)
+        
+        # Fetch news articles
+        ticker_news = {}
+        for ticker in tickers:
+            ticker_news[ticker] = fetch_news_for_ticker(ticker.strip())
+        
+        market_news = fetch_market_news(limit=4)  # Increased to 4 articles
+        
+        # Format news for the prompt
+        news_info = format_news_for_prompt(ticker_news, market_news)
+        
         # Get chat history from the database or initialize if not exists
         chat_history = user.get("chat_history", [])
         
@@ -107,12 +357,17 @@ def chat():
                 "role": "system", 
                 "content": f"""You are a helpful financial assistant that helps users understand their transaction history and finances.
 You have access to the user's transaction history from their bank account and their budget settings.
+You also have access to recent news about the stock market and specific stocks the user is interested in, as well as weekly stock performance data.
 Use this information to provide personalized financial advice and answer questions.
 Be concise, helpful, and accurate. If you don't know something, say so.
 Do not make up information that is not in the transaction history.
 Some transactions are positive, and some are negative. Positive transactions should be shown as a loss in money, and negative transactions should be shown as a gain in money. AKA a negative transaction is a refund.
 
 {budget_info}
+
+{performance_info}
+
+{news_info}
 
 Transaction history:
 {transaction_history}"""

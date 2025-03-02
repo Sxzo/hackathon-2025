@@ -151,7 +151,7 @@ const StockTransactionsList: React.FC = () => {
                 <th className="py-3 px-4">Shares</th>
                 <th className="py-3 px-4">Price</th>
                 <th className="py-3 px-4">Fees</th>
-                <th className="py-3 px-4 text-right">Total</th>
+                <th className="py-3 px-4 text-right">Realized Gains / Losses</th>
               </tr>
             </thead>
             <tbody>
