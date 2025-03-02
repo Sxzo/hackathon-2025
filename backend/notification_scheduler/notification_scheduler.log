@@ -183,3 +183,15 @@
 2025-03-01 18:07:23,531 - notification_scheduler - INFO - Successfully sent Telegram notification to user 67c383c0bfe586b4ca6fc444
 2025-03-01 18:08:01,511 - notification_scheduler - INFO - Scheduler interrupted by user
 2025-03-01 18:08:01,536 - notification_scheduler - INFO - Notification scheduler stopped
+2025-03-01 18:55:47,489 - notification_scheduler - INFO - Starting notification scheduler
+2025-03-01 18:56:47,509 - notification_scheduler - INFO - Checking for notifications at 2025-03-02 00:56:47.509661 UTC
+2025-03-01 18:56:47,509 - notification_scheduler - INFO - Rounded time: 2025-03-02 00:57:00 UTC
+2025-03-01 18:56:47,939 - notification_scheduler - INFO - Found 1 users scheduled for notifications
+2025-03-01 18:56:47,940 - notification_scheduler - INFO - Processing notification for user: 67c383c0bfe586b4ca6fc444 in timezone America/Chicago
+2025-03-01 18:56:48,574 - notification_scheduler - INFO - Fetching stock portfolio data
+2025-03-01 18:57:08,146 - notification_scheduler - INFO - Successfully sent Telegram notification to user 67c383c0bfe586b4ca6fc444
+2025-03-01 18:58:08,165 - notification_scheduler - INFO - Checking for notifications at 2025-03-02 00:58:08.165166 UTC
+2025-03-01 18:58:08,165 - notification_scheduler - INFO - Rounded time: 2025-03-02 00:58:00 UTC
+2025-03-01 18:58:08,220 - notification_scheduler - INFO - No users scheduled for notifications at this time
+2025-03-01 18:58:40,467 - notification_scheduler - INFO - Scheduler interrupted by user
+2025-03-01 18:58:40,495 - notification_scheduler - INFO - Notification scheduler stopped
