@@ -117,5 +117,6 @@ class PlaidClient:
             "total_count": len(transactions),
             "total_spent": round(total_spent, 2),
             "categories": {k: round(v, 2) for k, v in categories.items()},
-            "largest_transaction": largest_transaction
+            "largest_transaction": largest_transaction,
+            "transactions": transactions
         } 

@@ -1,6 +1,7 @@
 import requests
 import logging
-from config import TELEGRAM_BOT_TOKEN
+import json
+from config import TELEGRAM_BOT_TOKEN, OPENAI_API_KEY, OPENAI_MODEL
 
 logger = logging.getLogger("notification_scheduler")
 
@@ -42,9 +43,108 @@ class TelegramClient:
             logger.error(f"Error sending Telegram message: {str(e)}")
             return False
     
+    def _generate_ai_insights(self, user_name, summary):
+        """
+        Generate AI-powered insights based on transaction data
+        
+        Args:
+            user_name (str): User's name
+            summary (dict): Transaction summary
+            
+        Returns:
+            str: AI-generated insights
+        """
+        try:
+            if not OPENAI_API_KEY:
+                logger.warning("OpenAI API key not set, skipping AI insights")
+                return None
+                
+            # Prepare the prompt with transaction data
+            prompt = self._create_openai_prompt(user_name, summary)
+            print(prompt)
+            
+            # Call OpenAI API
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {OPENAI_API_KEY}"
+            }
+            
+            payload = {
+                "model": OPENAI_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are a helpful financial assistant that provides concise, personalized insights about spending habits. Focus on actionable advice, budget alignment, and notable patterns. Keep your response under 100 words and use a friendly, conversational tone."},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 10000
+            }
+            
+            response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=payload
+            )
+            print(response.text)
+            if response.status_code == 200:
+                response_json = response.json()
+                insights = response_json["choices"][0]["message"]["content"].strip()
+                return insights
+            else:
+                logger.error(f"OpenAI API error: {response.text}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error generating AI insights: {str(e)}")
+            return None
+    
+    def _create_openai_prompt(self, user_name, summary):
+        """
+        Create a prompt for OpenAI based on transaction data
+        
+        Args:
+            user_name (str): User's name
+            summary (dict): Transaction summary
+            
+        Returns:
+            str: Formatted prompt
+        """
+        prompt = f"Generate a personalized financial summary and insights for {user_name} based on the following transaction data:\n\n"
+        
+        if summary["total_count"] == 0:
+            prompt += "No transactions recorded in the past week.\n"
+            return prompt
+            
+        prompt += f"Total spent: ${summary['total_spent']:.2f}\n"
+        prompt += f"Number of transactions: {summary['total_count']}\n\n"
+        
+        if summary["categories"]:
+            prompt += "Spending by category:\n"
+            for category, amount in summary["categories"].items():
+                prompt += f"- {category}: ${amount:.2f}\n"
+            prompt += "\n"
+        
+        if summary["largest_transaction"]:
+            lt = summary["largest_transaction"]
+            prompt += f"Largest transaction: {lt['name']} (${lt['amount']:.2f}) on {lt['date']} in category {lt['category']}\n\n"
+
+        for transaction in summary["transactions"]:
+            prompt += f"\n💳 <b>{transaction['name']}</b> (${transaction['amount']:.2f}) on {transaction['date']}"
+
+        for category, amount in summary["budget"].items():
+            prompt += f"- {category} budget: ${amount:.2f}\n"
+        
+        prompt += "Please provide a brief analysis of this spending pattern, including:\n"
+        prompt += "1. Notable insights about spending habits\n"
+        prompt += "2. Suggestions for budget improvements\n"
+        prompt += "3. Any unusual transactions or patterns\n"
+        prompt += "4. A positive encouragement about financial habits\n\n"
+        prompt += "Be sure to include a mention to the user's budget and how they are doing with it. Format your response in a conversational, friendly tone. Keep it concise (under 200 words) and make it feel personalized."
+        
+        return prompt
+    
     def format_transaction_summary(self, user_name, summary):
         """
-        Format a transaction summary into a readable Telegram message
+        Format a transaction summary into a readable Telegram message with AI insights
         
         Args:
             user_name (str): User's name
@@ -56,6 +156,7 @@ class TelegramClient:
         if summary["total_count"] == 0:
             return f"Hi {user_name}, you have no transactions in the past week."
         
+        # Generate the basic summary
         message = f"<b>Hi {user_name}, here's your weekly financial summary:</b>\n\n"
         
         # Add total spent
@@ -72,5 +173,11 @@ class TelegramClient:
         if summary["largest_transaction"]:
             lt = summary["largest_transaction"]
             message += f"\n🔍 <b>Largest transaction:</b>\n{lt['name']} (${lt['amount']:.2f}) on {lt['date']}"
+ 
+        # Generate and add AI insights
+        ai_insights = self._generate_ai_insights(user_name, summary)
+        if ai_insights:
+            message += f"\n\n✨ <b>AI Insights:</b>\n{ai_insights}"
         
+        print(message)
         return message 
