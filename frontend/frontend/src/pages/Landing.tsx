@@ -1,4 +1,4 @@
-import { FiArrowRight, FiBarChart2, FiDollarSign, FiCalendar, FiMessageCircle, FiCheckCircle, FiTrendingUp, FiPieChart } from 'react-icons/fi';
+import { FiArrowRight, FiBarChart2, FiDollarSign, FiCalendar, FiMessageCircle, FiCheckCircle, FiTrendingUp, FiPieChart, FiSmartphone } from 'react-icons/fi';
 import { BsGraphUp, BsShieldCheck, BsCreditCard2Front } from 'react-icons/bs';
 import { TypeAnimation } from 'react-type-animation';
 import { useState, useEffect } from 'react';
@@ -163,10 +163,10 @@ const Landing = () => {
             <div className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group hover:-translate-y-2">
               <div className="absolute top-0 left-0 w-1 h-full bg-[#d03027]"></div>
               <div className="bg-[#f0f7fc] p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4 group-hover:bg-[#e1eef8] transition-colors">
-                <FiCalendar className="text-[#004977] text-xl" />
+                <FiSmartphone className="text-[#004977] text-xl" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-[#004977]">Financial Planning</h3>
-              <p className="text-gray-600">Plan for major life events with customized savings strategies and financial roadmaps.</p>
+              <h3 className="text-xl font-semibold mb-3 text-[#004977]">Weekly Mobile Updates</h3>
+              <p className="text-gray-600">Get a weekly summary of your finances, including your spending, savings, and investment performance.</p>
             </div>
           </div>
         </div>
