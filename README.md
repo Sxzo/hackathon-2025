@@ -2,6 +2,9 @@
 
 This project implements a financial chatbot that fetches transaction history from Plaid and uses that context to answer user questions. The chatbot is built using LangChain and ChatGPT 4o mini.
 
+## Devpost Demo
+See our Demo: https://devpost.com/software/finn-ai
+
 ## Setup
 
 ### Backend
